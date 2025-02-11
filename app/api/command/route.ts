@@ -215,6 +215,6 @@ export const config = {
     },
     responseLimit: '8mb',
     // 设置 Vercel 的 serverless 函数超时时间
-    maxDuration: 300
+    maxDuration: 60
   }
 }; 
