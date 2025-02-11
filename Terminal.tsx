@@ -8,11 +8,69 @@ import { simulateLinuxCommand } from "./lib/api"
 // 内置命令列表
 const BUILT_IN_COMMANDS = ['help', 'clear'];
 
+// 有效的 Linux 命令列表
+const VALID_COMMANDS = [
+  // 文件和目录操作
+  'ls', 'll', 'la', 'l', 'pwd', 'cd', 'mkdir', 'touch', 'find',
+  
+  // 文件内容操作
+  'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
+  
+  // 系统信息
+  'date', 'cal', 'uptime', 'whoami', 'who', 'w', 'id',
+  'uname', 'hostname', 'domainname', 'dnsdomainname',
+  
+  // 进程管理
+  'ps', 'pstree', 'top', 'htop',
+  
+  // 系统资源
+  'free', 'df', 'du', 'iostat', 'vmstat',
+  
+  // 网络相关
+  'ping', 'netstat', 'ss', 'ip', 'ifconfig', 'host', 'dig', 'nslookup',
+  
+  // 文本处理
+  'echo', 'printf', 'sed', 'awk', 'cut', 'tr', 'diff', 'cmp',
+  
+  // 压缩和解压
+  'tar', 'gzip', 'gunzip', 'zip', 'unzip', 'bzip2', 'bunzip2',
+  
+  // 用户和权限
+  'groups', 'users', 'last', 'finger',
+  
+  // 其他实用工具
+  'clear', 'help', 'history', 'alias', 'type', 'which', 'whereis',
+  'man', 'info', 'whatis', 'apropos',
+  
+  // 文件传输
+  'scp', 'rsync', 'ftp', 'sftp', 'curl', 'wget',
+  
+  // 编辑器
+  'nano', 'vim', 'vi'
+];
+
+// 检查命令是否为有效的 Linux 命令
+function isValidCommand(command: string): boolean {
+  // 获取主命令（去掉参数）
+  const mainCommand = command.trim().split(' ')[0].toLowerCase();
+  return VALID_COMMANDS.includes(mainCommand);
+}
+
+// 检查输入是否包含中文字符
+function containsChinese(text: string): boolean {
+  return /[\u4e00-\u9fa5]/.test(text);
+}
+
 export function Terminal() {
   const [history, setHistory] = useState<string[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const outputRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const focusInput = () => {
+    inputRef.current?.focus()
+  }
 
   const handleCommand = async (command: string) => {
     const cmd = command.toLowerCase();
@@ -34,6 +92,22 @@ export function Terminal() {
           break
       }
       setInputValue("")
+      focusInput()
+      return;
+    }
+
+    // 检查命令有效性
+    if (containsChinese(command)) {
+      setHistory((prev) => [...prev, "bash: command not found"])
+      setInputValue("")
+      focusInput()
+      return;
+    }
+
+    if (!isValidCommand(command)) {
+      setHistory((prev) => [...prev, `bash: ${command.split(' ')[0]}: command not found`])
+      setInputValue("")
+      focusInput()
       return;
     }
 
@@ -51,6 +125,7 @@ export function Terminal() {
     } finally {
       setIsProcessing(false)
       setInputValue("")
+      focusInput()
     }
   }
 
@@ -60,8 +135,16 @@ export function Terminal() {
     }
   }, [history])
 
+  // 初始聚焦
+  useEffect(() => {
+    focusInput()
+  }, [])
+
   return (
-    <div className="w-full max-w-3xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8">
+    <div 
+      className="w-full max-w-3xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8"
+      onClick={focusInput}
+    >
       <div className="bg-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between">
         <div className="flex items-center">
           <div className="flex space-x-1 sm:space-x-2">
@@ -80,6 +163,7 @@ export function Terminal() {
       <div className="p-2 sm:p-4">
         <TerminalOutput history={history} ref={outputRef} />
         <TerminalInput 
+          ref={inputRef}
           value={inputValue} 
           onChange={(e) => setInputValue(e.target.value)} 
           onSubmit={handleCommand}
