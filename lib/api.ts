@@ -19,7 +19,7 @@ export async function simulateLinuxCommand(command: string): Promise<string> {
     });
 
     if (!response.data.choices || !response.data.choices[0]) {
-      throw new Error('Invalid API response format');
+      throw new Error('无效的 API 响应格式');
     }
 
     return response.data.choices[0].message.content;
@@ -31,7 +31,8 @@ export async function simulateLinuxCommand(command: string): Promise<string> {
     } else if (axiosError.response?.status === 429) {
       return '错误: 请求过于频繁，请稍后再试';
     } else {
-      return `错误: ${axiosError.response?.data?.error || '命令执行失败'}`;
+      const errorMessage = axiosError.response?.data?.error || axiosError.message || '命令执行失败';
+      throw new Error(errorMessage);
     }
   }
 } 

@@ -3,8 +3,25 @@ import axios from 'axios';
 import { headers } from 'next/headers';
 import { rateLimit } from '@/lib/rate-limit';
 
+// 从环境变量获取配置
 const API_KEY = process.env.DEEPSEEK_API_KEY;
-const API_URL = 'https://cloud.luchentech.com/api/maas/chat/completions';
+const API_URL = process.env.AI_MODEL_API_URL || 'https://cloud.luchentech.com/api/maas/chat/completions';
+const MODEL_NAME = process.env.AI_MODEL_NAME || 'deepseek_r1';
+const MAX_TOKENS = parseInt(process.env.AI_MODEL_MAX_TOKENS || '512', 10);
+
+// 验证必要的环境变量
+if (!API_KEY) {
+  console.error('Missing required environment variable: DEEPSEEK_API_KEY');
+}
+
+// 创建一个带有默认配置的 axios 实例
+const api = axios.create({
+  timeout: 120000, // 120 秒超时
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${API_KEY}`
+  }
+});
 
 // 危险命令列表
 const DANGEROUS_COMMANDS = [
@@ -34,16 +51,29 @@ function sanitizeCommand(command: string): string {
 
 export async function POST(request: Request) {
   try {
+    if (!API_KEY) {
+      return NextResponse.json(
+        { error: 'API 密钥未配置' },
+        { status: 500 }
+      );
+    }
+
     // 获取客户端 IP
     const forwardedFor = headers().get('x-forwarded-for');
     const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
     
     // 应用速率限制
-    const { success } = await rateLimit(ip);
+    const { success, remaining } = await rateLimit(ip);
     if (!success) {
       return NextResponse.json(
         { error: '请求过于频繁，请稍后再试' },
-        { status: 429 }
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': remaining.toString(),
+            'Retry-After': '60'
+          }
+        }
       );
     }
 
@@ -78,14 +108,12 @@ export async function POST(request: Request) {
     const sanitizedCommand = sanitizeCommand(command);
 
     // 调用 API
-    const response = await axios.post(
-      API_URL,
-      {
-        model: 'deepseek_r1',
-        messages: [
-          {
-            role: 'system',
-            content: `你现在是一个 Linux 终端模拟器。你的任务是：
+    const response = await api.post(API_URL, {
+      model: MODEL_NAME,
+      messages: [
+        {
+          role: 'system',
+          content: `你现在是一个 Linux 终端模拟器。你的任务是：
 1. 直接返回命令的执行结果，不要添加任何解释或额外文字
 2. 如果是 ls 命令，返回格式应该是文件和目录的列表，每行一个
 3. 如果是 pwd 命令，只返回一个路径
@@ -97,6 +125,11 @@ export async function POST(request: Request) {
 9. 不要解释命令的作用，只返回执行结果
 10. 模拟真实的 Linux 终端输出格式
 
+支持以下命令别名：
+- ll 等同于 ls -l
+- la 等同于 ls -la
+- l 等同于 ls -lah
+
 示例：
 用户: ls
 助手:
@@ -105,6 +138,14 @@ Downloads
 Pictures
 Desktop
 .bashrc
+
+用户: ll
+助手:
+drwxr-xr-x 2 user user 4096 Feb 11 10:30 Documents
+drwxr-xr-x 2 user user 4096 Feb 11 10:30 Downloads
+drwxr-xr-x 2 user user 4096 Feb 11 10:30 Pictures
+drwxr-xr-x 2 user user 4096 Feb 11 10:30 Desktop
+-rw-r--r-- 1 user user  220 Feb 11 10:30 .bashrc
 
 用户: pwd
 助手:
@@ -121,25 +162,22 @@ cat: invalid.txt: No such file or directory
 用户: invalidcmd
 助手:
 bash: invalidcmd: command not found`
-          },
-          {
-            role: 'user',
-            content: sanitizedCommand
-          }
-        ],
-        stream: false,
-        max_tokens: 512
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
         },
-        timeout: 120000 // 增加到 120 秒超时
-      }
-    );
+        {
+          role: 'user',
+          content: sanitizedCommand
+        }
+      ],
+      stream: false,
+      max_tokens: MAX_TOKENS
+    });
 
-    return NextResponse.json(response.data);
+    return NextResponse.json(response.data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache',
+        'X-RateLimit-Remaining': remaining.toString()
+      }
+    });
   } catch (error: any) {
     console.error('API Error:', {
       message: error.message,
@@ -147,7 +185,6 @@ bash: invalidcmd: command not found`
       status: error.response?.status
     });
 
-    // 根据错误类型返回适当的错误信息
     if (error.code === 'ECONNABORTED') {
       return NextResponse.json(
         { error: '请求超时，请稍后重试' },
@@ -158,7 +195,10 @@ bash: invalidcmd: command not found`
     if (axios.isAxiosError(error)) {
       const status = error.response?.status || 500;
       const message = error.response?.data?.error || '服务器内部错误';
-      return NextResponse.json({ error: message }, { status });
+      return NextResponse.json(
+        { error: message },
+        { status }
+      );
     }
 
     return NextResponse.json(

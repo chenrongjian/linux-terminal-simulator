@@ -18,22 +18,32 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
     serverActions: {
       bodySizeLimit: '2mb',
     },
   },
-  api: {
-    responseLimit: false,
-    bodyParser: {
-      sizeLimit: '2mb',
-    },
-    externalResolver: true,
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
+          { key: 'Cache-Control', value: 'no-store, no-cache' }
+        ],
+      },
+    ]
   },
-  httpAgentOptions: {
-    keepAlive: true,
-    timeout: 120000, // 120 秒
+  // 增加 API 超时时间
+  serverRuntimeConfig: {
+    api: {
+      bodyParser: {
+        sizeLimit: '2mb',
+      },
+      externalResolver: true,
+    },
   },
 }
 

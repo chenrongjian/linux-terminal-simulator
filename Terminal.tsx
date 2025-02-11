@@ -42,9 +42,12 @@ export function Terminal() {
 
     try {
       const response = await simulateLinuxCommand(command)
-      setHistory((prev) => [...prev, response])
-    } catch (error) {
-      setHistory((prev) => [...prev, `错误: ${error}`])
+      // 将响应按换行符分割成数组
+      const lines = response.split('\n')
+      setHistory((prev) => [...prev, ...lines])
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.message || '未知错误';
+      setHistory((prev) => [...prev, `错误: ${errorMessage}`])
     } finally {
       setIsProcessing(false)
       setInputValue("")
