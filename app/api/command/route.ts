@@ -3,6 +3,11 @@ import axios from 'axios';
 import { headers } from 'next/headers';
 import { rateLimit } from '@/lib/rate-limit';
 
+// Route Segment Config
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // 从环境变量获取配置
 const API_KEY = process.env.DEEPSEEK_API_KEY;
 const API_URL = process.env.AI_MODEL_API_URL || 'https://cloud.luchentech.com/api/maas/chat/completions';
@@ -206,15 +211,4 @@ bash: invalidcmd: command not found`
       { status: 500 }
     );
   }
-}
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb'
-    },
-    responseLimit: '8mb',
-    // 设置 Vercel 的 serverless 函数超时时间
-    maxDuration: 60
-  }
-}; 
+} 
