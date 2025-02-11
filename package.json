@@ -1,7 +1,7 @@
 {
   "name": "linux-terminal-simulator",
   "version": "1.0.0",
-  "description": "A web-based Linux terminal simulator using Next.js and Deepseek API",
+  "description": "A web-based Linux terminal simulator using Next.js and Qwen API",
   "private": true,
   "engines": {
     "node": ">=18.0.0"

@@ -17,7 +17,6 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    webpackBuildWorker: true,
     serverActions: {
       bodySizeLimit: '2mb',
     },

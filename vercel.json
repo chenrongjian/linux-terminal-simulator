@@ -1,20 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
   "regions": ["hkg1"],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache"
-        }
-      ]
-    }
-  ],
   "functions": {
     "app/api/**/*": {
       "maxDuration": 300
