@@ -30,7 +30,7 @@ const api = axios.create({
 
 // 危险命令列表
 const DANGEROUS_COMMANDS = [
-  'rm', 'mv', 'cp', 'chmod', 'chown', 'sudo', 'su', 
+  'rm', 'chmod', 'chown', 'sudo', 'su', 
   'dd', 'mkfs', 'fdisk', 'mount', 'umount', 'systemctl',
   'service', 'kill', 'pkill', ':(){:|:&};:', '> /dev/sda'
 ];
@@ -39,6 +39,7 @@ const DANGEROUS_COMMANDS = [
 const VALID_COMMANDS = [
   // 文件和目录操作
   'ls', 'll', 'la', 'l', 'pwd', 'cd', 'mkdir', 'touch', 'find',
+  'cp', 'mv',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -84,15 +85,13 @@ function isValidCommand(command: string): boolean {
 
 // 检查命令是否安全
 function isCommandSafe(command: string): boolean {
-  const lowerCmd = command.toLowerCase();
-  return !DANGEROUS_COMMANDS.some(dangerCmd => 
-    lowerCmd.includes(dangerCmd) || 
-    lowerCmd.includes('`') || 
-    lowerCmd.includes('$(') ||
-    lowerCmd.includes('|') ||
-    lowerCmd.includes('>') ||
-    lowerCmd.includes('<')
-  );
+  const mainCommand = command.trim().split(' ')[0].toLowerCase();
+  // 只检查主命令是否在危险命令列表中
+  if (DANGEROUS_COMMANDS.includes(mainCommand)) {
+    return false;
+  }
+  // 检查是否包含 shell 注入相关的特殊字符
+  return !/[`$]|\$\(|\||>|</.test(command);
 }
 
 // 清理和验证输入
@@ -105,7 +104,7 @@ function sanitizeCommand(command: string): string {
   if (!isValidCommand(command)) {
     return 'invalid_command';
   }
-  // 移除多余的空格和特殊字符
+  // 只移除危险的特殊字符，保留命令参数中的连字符和其他必要字符
   return command.trim().replace(/[;&|><`$\\]/g, '');
 }
 
@@ -148,8 +147,16 @@ export async function POST(request: Request) {
 
     const command = body.command.trim();
     
-    // 如果命令无效，直接返回错误
-    if (command === 'invalid_command') {
+    // 验证命令长度
+    if (command.length > 500) {
+      return NextResponse.json(
+        { error: '命令长度超出限制' },
+        { status: 400 }
+      );
+    }
+
+    // 检查是否包含中文字符
+    if (/[\u4e00-\u9fa5]/.test(command)) {
       return NextResponse.json(
         { choices: [{ message: { content: 'bash: command not found' } }] },
         { 
@@ -161,24 +168,34 @@ export async function POST(request: Request) {
       );
     }
 
-    // 验证命令长度
-    if (command.length > 500) {
+    // 检查是否为有效命令
+    if (!isValidCommand(command)) {
       return NextResponse.json(
-        { error: '命令长度超出限制' },
-        { status: 400 }
+        { choices: [{ message: { content: `bash: ${command.split(' ')[0]}: command not found` } }] },
+        { 
+          headers: {
+            'Cache-Control': 'no-store, no-cache',
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        }
       );
     }
 
     // 检查命令安全性
     if (!isCommandSafe(command)) {
       return NextResponse.json(
-        { error: '该命令可能存在安全风险，已被禁用' },
-        { status: 403 }
+        { choices: [{ message: { content: 'Operation not permitted' } }] },
+        { 
+          headers: {
+            'Cache-Control': 'no-store, no-cache',
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        }
       );
     }
 
-    // 清理命令
-    const sanitizedCommand = sanitizeCommand(command);
+    // 清理命令，只移除真正危险的字符
+    const sanitizedCommand = command.trim().replace(/[;&|><`$\\]/g, '');
 
     // 调用 API
     const response = await api.post(API_URL, {
