@@ -35,6 +35,53 @@ const DANGEROUS_COMMANDS = [
   'service', 'kill', 'pkill', ':(){:|:&};:', '> /dev/sda'
 ];
 
+// 基本命令列表
+const VALID_COMMANDS = [
+  // 文件和目录操作
+  'ls', 'll', 'la', 'l', 'pwd', 'cd', 'mkdir', 'touch', 'find',
+  
+  // 文件内容操作
+  'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
+  
+  // 系统信息
+  'date', 'cal', 'uptime', 'whoami', 'who', 'w', 'id',
+  'uname', 'hostname', 'domainname', 'dnsdomainname',
+  
+  // 进程管理
+  'ps', 'pstree', 'top', 'htop',
+  
+  // 系统资源
+  'free', 'df', 'du', 'iostat', 'vmstat',
+  
+  // 网络相关
+  'ping', 'netstat', 'ss', 'ip', 'ifconfig', 'host', 'dig', 'nslookup',
+  
+  // 文本处理
+  'echo', 'printf', 'sed', 'awk', 'cut', 'tr', 'diff', 'cmp',
+  
+  // 压缩和解压
+  'tar', 'gzip', 'gunzip', 'zip', 'unzip', 'bzip2', 'bunzip2',
+  
+  // 用户和权限
+  'groups', 'users', 'last', 'finger',
+  
+  // 其他实用工具
+  'clear', 'help', 'history', 'alias', 'type', 'which', 'whereis',
+  'man', 'info', 'whatis', 'apropos',
+  
+  // 文件传输
+  'scp', 'rsync', 'ftp', 'sftp', 'curl', 'wget',
+  
+  // 编辑器
+  'nano', 'vim', 'vi'
+];
+
+// 检查命令是否为有效的 Linux 命令
+function isValidCommand(command: string): boolean {
+  const cmd = command.trim().split(' ')[0].toLowerCase();
+  return VALID_COMMANDS.includes(cmd);
+}
+
 // 检查命令是否安全
 function isCommandSafe(command: string): boolean {
   const lowerCmd = command.toLowerCase();
@@ -50,6 +97,14 @@ function isCommandSafe(command: string): boolean {
 
 // 清理和验证输入
 function sanitizeCommand(command: string): string {
+  // 检查是否包含中文字符
+  if (/[\u4e00-\u9fa5]/.test(command)) {
+    return 'invalid_command';
+  }
+  // 检查是否为有效命令
+  if (!isValidCommand(command)) {
+    return 'invalid_command';
+  }
   // 移除多余的空格和特殊字符
   return command.trim().replace(/[;&|><`$\\]/g, '');
 }
@@ -92,6 +147,19 @@ export async function POST(request: Request) {
     }
 
     const command = body.command.trim();
+    
+    // 如果命令无效，直接返回错误
+    if (command === 'invalid_command') {
+      return NextResponse.json(
+        { choices: [{ message: { content: 'bash: command not found' } }] },
+        { 
+          headers: {
+            'Cache-Control': 'no-store, no-cache',
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        }
+      );
+    }
 
     // 验证命令长度
     if (command.length > 500) {
