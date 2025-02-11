@@ -16,7 +16,7 @@ if (!API_KEY) {
 
 // 创建一个带有默认配置的 axios 实例
 const api = axios.create({
-  timeout: 120000, // 120 秒超时
+  timeout: 180000, // 增加到 180 秒超时
   headers: {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${API_KEY}`
@@ -206,4 +206,15 @@ bash: invalidcmd: command not found`
       { status: 500 }
     );
   }
-} 
+}
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '1mb'
+    },
+    responseLimit: '8mb',
+    // 设置 Vercel 的 serverless 函数超时时间
+    maxDuration: 300
+  }
+}; 

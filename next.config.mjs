@@ -36,13 +36,14 @@ const nextConfig = {
       },
     ]
   },
-  // 增加 API 超时时间
+  // 增加 API 超时时间和限制
   serverRuntimeConfig: {
     api: {
       bodyParser: {
         sizeLimit: '2mb',
       },
       externalResolver: true,
+      responseLimit: '8mb',
     },
   },
 }
