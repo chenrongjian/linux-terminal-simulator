@@ -1,0 +1,26 @@
+{
+  "name": "Linux 终端模拟器",
+  "short_name": "Linux Terminal",
+  "description": "一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1b1e",
+  "theme_color": "#1a1b1e",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 
