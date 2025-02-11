@@ -8,10 +8,18 @@ import { simulateLinuxCommand } from "./lib/api"
 // 内置命令列表
 const BUILT_IN_COMMANDS = ['help', 'clear'];
 
-// 有效的 Linux 命令列表
+// 危险命令列表
+const DANGEROUS_COMMANDS = [
+  'rm', 'chmod', 'chown', 'sudo', 'su', 
+  'dd', 'mkfs', 'fdisk', 'mount', 'umount', 'systemctl',
+  'service', 'kill', 'pkill', ':(){:|:&};:', '> /dev/sda'
+];
+
+// 有效的 Linux 命令列表（包括危险命令）
 const VALID_COMMANDS = [
   // 文件和目录操作
   'ls', 'll', 'la', 'l', 'pwd', 'cd', 'mkdir', 'touch', 'find',
+  'rm', 'mv', 'cp',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -22,6 +30,7 @@ const VALID_COMMANDS = [
   
   // 进程管理
   'ps', 'pstree', 'top', 'htop',
+  'kill', 'pkill', // 危险命令
   
   // 系统资源
   'free', 'df', 'du', 'iostat', 'vmstat',
@@ -37,6 +46,7 @@ const VALID_COMMANDS = [
   
   // 用户和权限
   'groups', 'users', 'last', 'finger',
+  'chmod', 'chown', 'sudo', 'su', // 危险命令
   
   // 其他实用工具
   'clear', 'help', 'history', 'alias', 'type', 'which', 'whereis',
@@ -46,7 +56,10 @@ const VALID_COMMANDS = [
   'scp', 'rsync', 'ftp', 'sftp', 'curl', 'wget',
   
   // 编辑器
-  'nano', 'vim', 'vi'
+  'nano', 'vim', 'vi',
+
+  // 系统管理（危险命令）
+  'dd', 'mkfs', 'fdisk', 'mount', 'umount', 'systemctl', 'service'
 ];
 
 // 检查命令是否为有效的 Linux 命令
@@ -54,6 +67,12 @@ function isValidCommand(command: string): boolean {
   // 获取主命令（去掉参数）
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
   return VALID_COMMANDS.includes(mainCommand);
+}
+
+// 检查命令是否为危险命令
+function isDangerousCommand(command: string): boolean {
+  const mainCommand = command.trim().split(' ')[0].toLowerCase();
+  return DANGEROUS_COMMANDS.includes(mainCommand);
 }
 
 // 检查输入是否包含中文字符
@@ -87,7 +106,8 @@ export function Terminal() {
             "可用命令:",
             "- help: 显示帮助信息",
             "- clear: 清空终端",
-            "- 其他标准 Linux 命令将通过 AI 模拟执行"
+            "- 其他标准 Linux 命令将通过 AI 模拟执行",
+            "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
           break
       }
@@ -106,6 +126,14 @@ export function Terminal() {
 
     if (!isValidCommand(command)) {
       setHistory((prev) => [...prev, `bash: ${command.split(' ')[0]}: command not found`])
+      setInputValue("")
+      focusInput()
+      return;
+    }
+
+    // 检查危险命令
+    if (isDangerousCommand(command)) {
+      setHistory((prev) => [...prev, "Operation not permitted: 该命令可能造成系统损坏，已被禁用"])
       setInputValue("")
       focusInput()
       return;
