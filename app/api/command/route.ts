@@ -202,22 +202,37 @@ export async function POST(request: Request) {
 
     // 检查是否为 ASCII 艺术命令
     if (isAsciiArtCommand(command.split(' ')[0])) {
+      // 获取要生成的动物/对象类型和文本
+      const [cmd, type, ...textParts] = command.split(' ');
+      const text = type ? textParts.join(' ') : type;
+      const artType = text ? type : 'tux'; // 如果没有文本，则 type 就是文本，使用默认 tux
+
       const response = await api.post(API_URL, {
         model: MODEL_NAME,
         stream: false,
         messages: [
           {
             role: 'system',
-            content: `You are an ASCII art generator. When receiving a cowsay command followed by text, generate an ASCII art of a cute Linux penguin (Tux) with a speech bubble containing the text. Follow these rules:
-1. Always generate ASCII art that fits within 80 columns
-2. Use simple ASCII characters to ensure compatibility
-3. Make the penguin cute and recognizable as Tux
-4. Put the input text in a speech bubble above the penguin
-5. Return ONLY the ASCII art, no explanations or additional text`
+            content: `You are an ASCII art generator. Generate ASCII art based on the following rules:
+
+1. If the input contains a specific animal/object type (like cat, dog, tux, etc.), generate ASCII art of that type
+2. Always put the text in a speech bubble above the ASCII art
+3. Make the art cute and recognizable
+4. Use simple ASCII characters to ensure compatibility
+5. Keep the art within 80 columns
+6. Return ONLY the ASCII art, no explanations or additional text
+
+Examples of different types:
+- For "tux": Generate a Linux penguin (Tux)
+- For "cat": Generate a cute cat
+- For "dog": Generate a cute dog
+- For other types: Generate a suitable ASCII art representation
+
+If no specific type is provided, default to generating Tux (the Linux penguin).`
           },
           {
             role: 'user',
-            content: command
+            content: `Generate ASCII art of type "${artType}" saying "${text || type}"`
           }
         ],
         max_tokens: MAX_TOKENS,
