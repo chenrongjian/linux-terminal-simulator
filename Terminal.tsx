@@ -6,7 +6,7 @@ import { TerminalOutput } from "./TerminalOutput"
 import { simulateLinuxCommand } from "./lib/api"
 
 // 内置命令列表
-const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix'];
+const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix', 'asciiquarium'];
 
 // 危险命令列表
 const DANGEROUS_COMMANDS = [
@@ -22,7 +22,7 @@ const VALID_COMMANDS = [
   'rm', 'mv', 'cp',
   
   // 新增趣味命令
-  'cowsay', 'sl', 'fortune', 'cmatrix',
+  'cowsay', 'sl', 'fortune', 'cmatrix', 'asciiquarium',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -102,18 +102,37 @@ __/ =| o |=-~~\\  /~~\\  /~~\\  /~~\\ __________|       |__
   \\_/      \\O=====O=====O=====O_/  \\__/  \\____|_______/
 `;
 
-// 添加矩阵雨动画状态
+// ASCII 艺术：鱼
+const FISH_RIGHT = [
+  "><>",
+  "<><",
+  "><>",
+];
+
+const FISH_LEFT = [
+  "<><",
+  "><>",
+  "<><",
+];
+
+const BUBBLE = ["o", "O", "°"];
+const SEAWEED = ["|", ")", "("];
+
+// 添加水族箱动画状态
 export function Terminal() {
   const [history, setHistory] = useState<string[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [trainPosition, setTrainPosition] = useState<number | null>(null)
   const [showMatrix, setShowMatrix] = useState(false)
+  const [showAquarium, setShowAquarium] = useState(false)
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const trainAnimationRef = useRef<NodeJS.Timeout>()
   const matrixRef = useRef<HTMLCanvasElement>(null)
+  const aquariumRef = useRef<HTMLCanvasElement>(null)
   const matrixAnimationRef = useRef<number>()
+  const aquariumAnimationRef = useRef<number>()
 
   // 清理动画定时器
   useEffect(() => {
@@ -123,6 +142,9 @@ export function Terminal() {
       }
       if (matrixAnimationRef.current) {
         cancelAnimationFrame(matrixAnimationRef.current);
+      }
+      if (aquariumAnimationRef.current) {
+        cancelAnimationFrame(aquariumAnimationRef.current);
       }
     };
   }, []);
@@ -180,6 +202,111 @@ export function Terminal() {
     };
   }, [showMatrix]);
 
+  // 水族箱动画效果
+  useEffect(() => {
+    if (!showAquarium || !aquariumRef.current) return;
+
+    const canvas = aquariumRef.current;
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    if (!ctx) return;
+
+    // 设置画布大小
+    const resizeCanvas = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // 初始化海洋生物
+    const fishes = Array.from({ length: 5 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * (canvas.height - 100) + 50,
+      speed: (Math.random() + 0.5) * 2,
+      direction: Math.random() > 0.5 ? 'right' : 'left',
+      frame: 0
+    }));
+
+    const bubbles = Array.from({ length: 15 }, () => ({
+      x: Math.random() * canvas.width,
+      y: canvas.height + Math.random() * 20,
+      speed: Math.random() * 1 + 0.5,
+      size: Math.floor(Math.random() * BUBBLE.length)
+    }));
+
+    const seaweeds = Array.from({ length: 8 }, () => ({
+      x: Math.random() * canvas.width,
+      frame: 0
+    }));
+
+    // 动画函数
+    function draw() {
+      ctx.fillStyle = '#001440';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制水草
+      ctx.fillStyle = '#0F8';
+      seaweeds.forEach(seaweed => {
+        const height = canvas.height / 6;
+        const y = canvas.height - height;
+        for (let i = 0; i < height; i += 20) {
+          ctx.font = '20px monospace';
+          ctx.fillText(
+            SEAWEED[Math.floor(seaweed.frame / 10) % SEAWEED.length],
+            seaweed.x,
+            y + i
+          );
+        }
+        seaweed.frame++;
+      });
+
+      // 绘制鱼
+      ctx.fillStyle = '#FF9';
+      fishes.forEach(fish => {
+        const fishArt = fish.direction === 'right' ? FISH_RIGHT : FISH_LEFT;
+        ctx.font = '20px monospace';
+        ctx.fillText(
+          fishArt[Math.floor(fish.frame / 10) % fishArt.length],
+          fish.x,
+          fish.y
+        );
+
+        fish.x += fish.direction === 'right' ? fish.speed : -fish.speed;
+        if (fish.x > canvas.width + 20) {
+          fish.direction = 'left';
+          fish.x = canvas.width + 10;
+        } else if (fish.x < -20) {
+          fish.direction = 'right';
+          fish.x = -10;
+        }
+        fish.frame++;
+      });
+
+      // 绘制气泡
+      ctx.fillStyle = '#8FF';
+      bubbles.forEach(bubble => {
+        ctx.font = '16px monospace';
+        ctx.fillText(BUBBLE[bubble.size], bubble.x, bubble.y);
+        bubble.y -= bubble.speed;
+        if (bubble.y < -20) {
+          bubble.y = canvas.height + Math.random() * 20;
+          bubble.x = Math.random() * canvas.width;
+        }
+      });
+
+      aquariumAnimationRef.current = requestAnimationFrame(draw);
+    }
+
+    aquariumAnimationRef.current = requestAnimationFrame(draw);
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (aquariumAnimationRef.current) {
+        cancelAnimationFrame(aquariumAnimationRef.current);
+      }
+    };
+  }, [showAquarium]);
+
   const focusInput = () => {
     inputRef.current?.focus()
   }
@@ -207,6 +334,7 @@ export function Terminal() {
             "- sl: 显示一辆动态的小火车",
             "- fortune: 随机生成一首优美的唐诗",
             "- cmatrix: 显示黑客帝国风格的矩阵雨效果",
+            "- asciiquarium: 显示水族箱动画效果",
             "- 其他标准 Linux 命令将通过 AI 模拟执行",
             "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
@@ -230,6 +358,9 @@ export function Terminal() {
           break
         case "cmatrix":
           setShowMatrix(true)
+          break
+        case "asciiquarium":
+          setShowAquarium(true)
           break
       }
       setInputValue("")
@@ -345,6 +476,22 @@ export function Terminal() {
               setShowMatrix(false);
               if (matrixAnimationRef.current) {
                 cancelAnimationFrame(matrixAnimationRef.current);
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* 水族箱动画 */}
+      {showAquarium && (
+        <div className="absolute inset-0 z-30">
+          <canvas
+            ref={aquariumRef}
+            className="w-full h-full"
+            onClick={() => {
+              setShowAquarium(false);
+              if (aquariumAnimationRef.current) {
+                cancelAnimationFrame(aquariumAnimationRef.current);
               }
             }}
           />
