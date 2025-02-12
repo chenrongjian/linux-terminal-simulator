@@ -5,13 +5,13 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Linux 终端模拟器 | 在线体验 Linux 命令和趣味 ASCII 艺术',
-  description: '一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令和多样化的 ASCII 艺术生成。使用 cowsay 命令可生成各种可爱的动物字符画，如企鹅 Tux、猫咪、狗狗等。提供实时响应和格式化输出，适合学习和体验 Linux 命令行操作。',
-  keywords: 'Linux, 终端模拟器, 命令行, Web 终端, Linux 学习, Next.js, AI, cowsay, ASCII art, Tux, 企鹅字符画, 猫咪字符画, 狗狗字符画',
+  title: 'Linux 终端模拟器 | 在线体验 Linux 命令和趣味动画效果',
+  description: '一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令和丰富的趣味功能。包括 cowsay 生成可爱动物字符画、sl 火车动画、fortune 唐诗生成、cmatrix 黑客帝国特效、asciiquarium 动态水族箱、炫酷系统监控仪表盘等。提供实时响应和格式化输出，让学习 Linux 变得有趣。',
+  keywords: 'Linux, 终端模拟器, 命令行, Web 终端, Linux 学习, Next.js, AI, cowsay, ASCII art, Tux, 企鹅字符画, 猫咪字符画, 狗狗字符画, sl 火车, fortune 唐诗, cmatrix 矩阵雨, asciiquarium 水族箱, 系统监控仪表盘, 动画效果',
   authors: [{ name: 'chenrongjian' }],
   openGraph: {
-    title: 'Linux 终端模拟器 | 在线体验 Linux 命令和趣味 ASCII 艺术',
-    description: '一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令和多样化的 ASCII 艺术生成。特色功能包括使用 cowsay 命令生成各种可爱的动物字符画。',
+    title: 'Linux 终端模拟器 | 在线体验 Linux 命令和趣味动画效果',
+    description: '一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令和丰富的趣味功能。包括字符画生成、动态火车、唐诗生成、矩阵雨、水族箱动画、系统监控仪表盘等特色功能。',
     type: 'website',
     locale: 'zh_CN',
     url: 'https://linux-terminal-simulator.vercel.app'
