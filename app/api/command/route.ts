@@ -42,7 +42,7 @@ const VALID_COMMANDS = [
   'cp', 'mv',
   
   // ASCII 艺术字符命令和趣味命令
-  'cowsay', 'fortune', 'cmatrix', 'asciiquarium', 'dashboard', 'oneko',
+  'cowsay', 'fortune', 'cmatrix', 'asciiquarium', 'dashboard', 'oneko', 'sl',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -95,7 +95,13 @@ function isDangerousCommand(command: string): boolean {
 // 检查命令是否为 ASCII 艺术命令
 function isAsciiArtCommand(command: string): boolean {
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
-  return ['cowsay', 'fortune'].includes(mainCommand);
+  return ['cowsay', 'fortune', 'cal'].includes(mainCommand);
+}
+
+// 检查命令是否为动画命令
+function isAnimationCommand(command: string): boolean {
+  const mainCommand = command.trim().split(' ')[0].toLowerCase();
+  return ['sl', 'cmatrix', 'asciiquarium', 'dashboard', 'oneko'].includes(mainCommand);
 }
 
 // 清理和验证输入
@@ -200,6 +206,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // 检查是否为动画命令
+    if (isAnimationCommand(command)) {
+      return NextResponse.json(
+        { choices: [{ message: { content: 'Animation command executed' } }] },
+        { 
+          headers: {
+            'Cache-Control': 'no-store, no-cache',
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        }
+      );
+    }
+
     // 检查是否为 ASCII 艺术命令
     if (isAsciiArtCommand(command.split(' ')[0])) {
       // 获取命令类型
@@ -226,30 +245,69 @@ export async function POST(request: Request) {
 感时花溅泪，恨别鸟惊心。
 烽火连三月，家书抵万金。
 白头搔更短，浑欲不胜簪。`;
+      } else if (cmd === 'cal') {
+        const now = new Date();
+        systemPrompt = `You are a calendar ASCII art generator. Generate a cute calendar for the current month with these rules:
+
+1. Show the current month's calendar in a decorative ASCII art frame
+2. Highlight today's date
+3. Add cute ASCII decorations around the calendar (stars, hearts, flowers, etc.)
+4. Include the current year and month at the top
+5. Format example:
+
+    ✿ ❀ ❀ Calendar 2024-01 ❀ ❀ ✿
+    ╭──────────────────────────╮
+    │      January 2024        │
+    │                          │
+    │   Su Mo Tu We Th Fr Sa   │
+    │       1  2  3  4  5  6   │
+    │    7  8  9 10 11 12 13   │
+    │   14 15 16 17 18 19 20   │
+    │   21 22 23 24 25 26 27   │
+    │   28 29 30 31            │
+    │                          │
+    ╰──────────────────────────╯
+    ♥ Today is January 5, 2024 ♥
+
+6. Return ONLY the ASCII art calendar, no explanations`;
+
+        promptCommand = `Generate a cute ASCII calendar for ${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')} with today being ${now.getDate()}`;
       } else if (cmd === 'cowsay') {
         // 获取要生成的动物/对象类型和文本
         const [type, ...textParts] = args;
-        const text = type ? textParts.join(' ') : type;
-        const artType = text ? type : 'tux'; // 如果没有文本，则 type 就是文本，使用默认 tux
+        const text = textParts.join(' ') || 'Meow~';  // 如果没有文本，使用默认文本
+        const artType = type?.toLowerCase() || 'tux';  // 如果没有类型，使用默认 tux
 
         systemPrompt = `You are an ASCII art generator. Generate ASCII art based on the following rules:
 
-1. If the input contains a specific animal/object type (like cat, dog, tux, etc.), generate ASCII art of that type
+1. For different types, generate different ASCII art:
+   - For "cat": Generate a cute cat ASCII art like this:
+      /\\___/\\
+     (  o o  )
+     (  =^=  ) 
+      (--m--)
+   - For "dog": Generate a cute dog ASCII art like this:
+      /^___/^
+     (  o o  )
+      (  w  )  
+       |___||
+   - For "tux": Generate a Linux penguin (Tux) ASCII art
 2. Always put the text in a speech bubble above the ASCII art
 3. Make the art cute and recognizable
 4. Use simple ASCII characters to ensure compatibility
 5. Keep the art within 80 columns
-6. Return ONLY the ASCII art, no explanations or additional text
+6. Return ONLY the ASCII art with speech bubble, no explanations
 
-Examples of different types:
-- For "tux": Generate a Linux penguin (Tux)
-- For "cat": Generate a cute cat
-- For "dog": Generate a cute dog
-- For other types: Generate a suitable ASCII art representation
+Example output for "cat" saying "Hello":
+  ________
+< Hello! >
+  --------
+    /\\___/\\
+   (  o o  )
+   (  =^=  ) 
+    (--m--)`;
 
-If no specific type is provided, default to generating Tux (the Linux penguin).`;
-
-        promptCommand = `Generate ASCII art of type "${artType}" saying "${text || type}"`;
+        promptCommand = `Generate ASCII art of type "${artType}" saying "${text}"`;
       }
 
       const response = await api.post(API_URL, {

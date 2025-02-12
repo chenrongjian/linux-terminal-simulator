@@ -81,7 +81,13 @@ function isDangerousCommand(command: string): boolean {
 // 检查命令是否为趣味字符命令
 function isAsciiArtCommand(command: string): boolean {
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
-  return ['cowsay', 'sl', 'fortune'].includes(mainCommand);
+  return ['cowsay', 'fortune'].includes(mainCommand);
+}
+
+// 检查命令是否为动画命令
+function isAnimationCommand(command: string): boolean {
+  const mainCommand = command.trim().split(' ')[0].toLowerCase();
+  return ['sl', 'cmatrix', 'asciiquarium', 'dashboard', 'oneko'].includes(mainCommand);
 }
 
 // 检查输入是否包含中文字符
@@ -225,7 +231,8 @@ export function Terminal() {
       matrixAnimationRef.current = requestAnimationFrame(draw);
     }
 
-    matrixAnimationRef.current = requestAnimationFrame(draw);
+    // 立即开始动画
+    draw();
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
@@ -330,7 +337,8 @@ export function Terminal() {
       aquariumAnimationRef.current = requestAnimationFrame(draw);
     }
 
-    aquariumAnimationRef.current = requestAnimationFrame(draw);
+    // 立即开始动画
+    draw();
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
@@ -462,7 +470,8 @@ export function Terminal() {
       dashboardAnimationRef.current = requestAnimationFrame(draw);
     }
 
-    dashboardAnimationRef.current = requestAnimationFrame(draw);
+    // 立即开始动画
+    draw();
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
@@ -478,16 +487,16 @@ export function Terminal() {
 
     let lastMouseX = 0;
     let lastMouseY = 0;
-    let isMoving = false;
     let sleepTimeout: NodeJS.Timeout;
     const terminalElement = document.querySelector('.terminal-container');
     if (!terminalElement) return;
 
     // 处理鼠标移动
     const handleMouseMove = (e: MouseEvent) => {
-      const now = Date.now();
-      lastMoveTime.current = now;
-      isMoving = true;
+      // 清除之前的睡眠定时器
+      if (sleepTimeout) {
+        clearTimeout(sleepTimeout);
+      }
       
       // 获取终端窗口的位置和大小
       const terminalRect = terminalElement.getBoundingClientRect();
@@ -497,14 +506,21 @@ export function Terminal() {
       const relativeY = e.clientY - terminalRect.top;
       
       updateNekoPosition(terminalRect, relativeX, relativeY);
+      
+      // 设置新的睡眠定时器
+      sleepTimeout = setTimeout(() => {
+        setNekoState('sleeping');
+      }, 3000);
     };
 
     // 处理触摸移动
     const handleTouchMove = (e: TouchEvent) => {
       e.preventDefault(); // 防止页面滚动
-      const now = Date.now();
-      lastMoveTime.current = now;
-      isMoving = true;
+      
+      // 清除之前的睡眠定时器
+      if (sleepTimeout) {
+        clearTimeout(sleepTimeout);
+      }
       
       // 获取终端窗口的位置和大小
       const terminalRect = terminalElement.getBoundingClientRect();
@@ -517,6 +533,11 @@ export function Terminal() {
       const relativeY = touch.clientY - terminalRect.top;
       
       updateNekoPosition(terminalRect, relativeX, relativeY);
+      
+      // 设置新的睡眠定时器
+      sleepTimeout = setTimeout(() => {
+        setNekoState('sleeping');
+      }, 3000);
     };
 
     // 更新猫咪位置的通用函数
@@ -531,7 +552,7 @@ export function Terminal() {
       const distance = Math.sqrt(dx * dx + dy * dy);
       
       // 如果距离太近，不需要移动
-      if (distance < 20) {
+      if (distance < 5) {
         setNekoState('idle');
         return;
       }
@@ -550,25 +571,18 @@ export function Terminal() {
       
       setNekoPosition({ x: newX, y: newY });
       setNekoState('running');
-
-      // 清除之前的睡眠定时器
-      if (sleepTimeout) {
-        clearTimeout(sleepTimeout);
-      }
-
-      // 如果停止移动 3 秒，进入睡眠状态
-      sleepTimeout = setTimeout(() => {
-        if (Date.now() - lastMoveTime.current >= 3000) {
-          setNekoState('sleeping');
-        }
-      }, 3000);
     };
 
     // 添加事件监听器
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
 
-    // 清理事件监听器
+    // 初始化睡眠定时器
+    sleepTimeout = setTimeout(() => {
+      setNekoState('sleeping');
+    }, 3000);
+
+    // 清理事件监听器和定时器
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove);
@@ -578,104 +592,46 @@ export function Terminal() {
     };
   }, [showNeko, nekoPosition]);
 
-  const focusInput = () => {
+  const focusInput = (closeAnimations: boolean = true) => {
     inputRef.current?.focus()
-    // 点击终端时只关闭其他动画效果，保持猫咪动画
-    setShowMatrix(false)
-    setShowAquarium(false)
-    setShowDashboard(false)
+    // 只在需要时关闭动画效果
+    if (closeAnimations) {
+      setShowMatrix(false)
+      setShowAquarium(false)
+      setShowDashboard(false)
+    }
   }
 
   const handleCommand = async (command: string) => {
-    const cmd = command.toLowerCase();
-    setHistory((prev) => [...prev, `$ ${command}`])
-    
-    // 内置命令处理
-    if (BUILT_IN_COMMANDS.includes(cmd)) {
-      switch (cmd) {
-        case "clear":
-          setHistory([])
-          break
-        case "help":
-          setHistory((prev) => [...prev, 
-            "可用命令:",
-            "- help: 显示帮助信息",
-            "- clear: 清空终端",
-            "- cowsay: 生成 ASCII 字符画，支持多种类型",
-            "  示例:",
-            "  - cowsay Hello World     # 生成 Tux 企鹅",
-            "  - cowsay cat Hello       # 生成猫咪",
-            "  - cowsay dog Woof        # 生成狗狗",
-            "- sl: 显示一辆动态的小火车",
-            "- fortune: 随机生成一首优美的唐诗",
-            "- cmatrix: 显示黑客帝国风格的矩阵雨效果",
-            "- asciiquarium: 显示水族箱动画效果",
-            "- dashboard: 显示系统监控仪表盘",
-            "- oneko: 切换猫咪动画的显示状态",
-            "- 其他标准 Linux 命令将通过 AI 模拟执行",
-            "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
-          ])
-          break
-        case "sl":
-          // 启动火车动画
-          setTrainPosition(100) // 从右侧开始
-          let position = 100;
-          if (trainAnimationRef.current) {
-            clearInterval(trainAnimationRef.current);
-          }
-          trainAnimationRef.current = setInterval(() => {
-            position -= 2;
-            if (position < -100) {
-              clearInterval(trainAnimationRef.current);
-              setTrainPosition(null);
-              return;
-            }
-            setTrainPosition(position);
-          }, 50);
-          break
-        case "cmatrix":
-          setShowMatrix(true)
-          break
-        case "asciiquarium":
-          setShowAquarium(true)
-          break
-        case "dashboard":
-          setShowDashboard(true)
-          break
-        case "oneko":
-          const terminalEl = document.querySelector('.terminal-container');
-          if (terminalEl) {
-            const rect = terminalEl.getBoundingClientRect();
-            setShowNeko(!showNeko);
-            // 使用相对位置而不是绝对位置
-            setNekoPosition({ 
-              x: 100,  // 直接使用相对位置
-              y: 100
-            });
-            setNekoState('idle');
-          }
-          break
-      }
-      setInputValue("")
-      focusInput()
+    // 如果输入为空，直接返回
+    if (!command.trim()) {
       return;
     }
 
-    // 检查是否是趣味字符命令
-    if (isAsciiArtCommand(command.split(' ')[0])) {
-      setIsProcessing(true)
-      try {
-        const response = await simulateLinuxCommand(command.toLowerCase(), true) // 确保命令小写并标记为 ASCII 艺术命令
-        const lines = response.split('\n')
-        setHistory((prev) => [...prev, ...lines])
-      } catch (error: any) {
-        const errorMessage = error.response?.data?.error || error.message || '未知错误';
-        setHistory((prev) => [...prev, `错误: ${errorMessage}`])
-      } finally {
-        setIsProcessing(false)
-        setInputValue("")
-        focusInput()
+    // 记录命令历史
+    setHistory((prev) => [...prev, `$ ${command}`])
+
+    // 处理特殊命令
+    if (command === 'clear') {
+      setHistory([])
+      setInputValue("")
+      focusInput(true)
+      return;
+    }
+
+    if (command === 'oneko') {
+      const terminalElement = document.querySelector('.terminal-container');
+      if (terminalElement) {
+        const rect = terminalElement.getBoundingClientRect();
+        // 设置猫咪在终端中央
+        setNekoPosition({
+          x: rect.width / 2 - 32,  // 32 是猫咪宽度的一半
+          y: rect.height / 2 - 32  // 32 是猫咪高度的一半
+        });
       }
+      setShowNeko(prev => !prev)  // 切换猫咪显示状态
+      setInputValue("")
+      focusInput(true)
       return;
     }
 
@@ -683,14 +639,14 @@ export function Terminal() {
     if (containsChinese(command)) {
       setHistory((prev) => [...prev, "bash: command not found"])
       setInputValue("")
-      focusInput()
+      focusInput(true)
       return;
     }
 
     if (!isValidCommand(command)) {
       setHistory((prev) => [...prev, `bash: ${command.split(' ')[0]}: command not found`])
       setInputValue("")
-      focusInput()
+      focusInput(true)
       return;
     }
 
@@ -698,7 +654,76 @@ export function Terminal() {
     if (isDangerousCommand(command)) {
       setHistory((prev) => [...prev, "Operation not permitted: 该命令可能造成系统损坏，已被禁用"])
       setInputValue("")
-      focusInput()
+      focusInput(true)
+      return;
+    }
+
+    // 处理 help 命令
+    if (command === 'help') {
+      setHistory((prev) => [...prev, 
+        "可用命令:",
+        "- help: 显示帮助信息",
+        "- clear: 清空终端",
+        "- cowsay: 生成 ASCII 字符画，支持多种类型",
+        "  示例:",
+        "  - cowsay Hello World     # 生成 Tux 企鹅",
+        "  - cowsay cat Hello       # 生成猫咪",
+        "  - cowsay dog Woof        # 生成狗狗",
+        "- sl: 显示一辆动态的小火车",
+        "- fortune: 随机生成一首优美的唐诗",
+        "- cmatrix: 显示黑客帝国风格的矩阵雨效果",
+        "- asciiquarium: 显示水族箱动画效果",
+        "- dashboard: 显示系统监控仪表盘",
+        "- oneko: 切换猫咪动画的显示状态",
+        "- cal: 显示精美的当月日历，带有可爱装饰",
+        "- 其他标准 Linux 命令将通过 AI 模拟执行",
+        "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
+      ])
+      setInputValue("")
+      focusInput(true)
+      return;
+    }
+
+    // 处理动画命令
+    if (command === 'sl') {
+      // 启动火车动画
+      setTrainPosition(100) // 从右侧开始
+      let position = 100;
+      if (trainAnimationRef.current) {
+        clearInterval(trainAnimationRef.current);
+      }
+      trainAnimationRef.current = setInterval(() => {
+        position -= 2;
+        if (position < -150) { // 调整为 -150 确保火车完全离开屏幕
+          clearInterval(trainAnimationRef.current);
+          setTrainPosition(null);
+          return;
+        }
+        setTrainPosition(position);
+      }, 50);
+      setInputValue("")
+      focusInput(false)
+      return;
+    }
+
+    if (command === 'cmatrix') {
+      setShowMatrix(true)
+      setInputValue("")
+      focusInput(false)
+      return;
+    }
+
+    if (command === 'asciiquarium') {
+      setShowAquarium(true)
+      setInputValue("")
+      focusInput(false)
+      return;
+    }
+
+    if (command === 'dashboard') {
+      setShowDashboard(true)
+      setInputValue("")
+      focusInput(false)
       return;
     }
 
@@ -707,7 +732,6 @@ export function Terminal() {
 
     try {
       const response = await simulateLinuxCommand(command)
-      // 将响应按换行符分割成数组
       const lines = response.split('\n')
       setHistory((prev) => [...prev, ...lines])
     } catch (error: any) {
@@ -716,7 +740,7 @@ export function Terminal() {
     } finally {
       setIsProcessing(false)
       setInputValue("")
-      focusInput()
+      focusInput(true)
     }
   }
 
@@ -728,13 +752,31 @@ export function Terminal() {
 
   // 初始聚焦
   useEffect(() => {
-    focusInput()
+    focusInput(true)
+  }, [])
+
+  // 处理键盘事件
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowMatrix(false)
+        setShowAquarium(false)
+        setShowDashboard(false)
+        focusInput(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   return (
     <div 
       className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative min-h-[60vh] md:min-h-[70vh] flex flex-col terminal-container"
-      onClick={focusInput}
+      onClick={(e) => {
+        e.preventDefault();
+        focusInput(true);
+      }}
     >
       {/* CRT 屏幕效果 */}
       <div className="absolute inset-0 pointer-events-none">
@@ -749,7 +791,7 @@ export function Terminal() {
       {/* 火车动画 */}
       {trainPosition !== null && (
         <div 
-          className="absolute inset-0 z-20 pointer-events-none text-green-400 font-mono whitespace-pre"
+          className="absolute inset-0 z-20 pointer-events-none text-green-400 font-mono whitespace-pre flex items-center"
           style={{ 
             transform: `translateX(${trainPosition}%)`,
             transition: 'transform 50ms linear'
@@ -761,10 +803,11 @@ export function Terminal() {
 
       {/* 矩阵雨动画 */}
       {showMatrix && (
-        <div className="absolute inset-0 z-30">
+        <div className="absolute inset-0 z-30 bg-black">
           <canvas
             ref={matrixRef}
-            className="w-full h-full"
+            className="w-full h-full cursor-pointer"
+            style={{ background: 'black' }}
             onClick={() => {
               setShowMatrix(false);
               if (matrixAnimationRef.current) {
@@ -777,10 +820,11 @@ export function Terminal() {
 
       {/* 水族箱动画 */}
       {showAquarium && (
-        <div className="absolute inset-0 z-30">
+        <div className="absolute inset-0 z-30 bg-[#001440]">
           <canvas
             ref={aquariumRef}
-            className="w-full h-full"
+            className="w-full h-full cursor-pointer"
+            style={{ background: '#001440' }}
             onClick={() => {
               setShowAquarium(false);
               if (aquariumAnimationRef.current) {
@@ -793,10 +837,11 @@ export function Terminal() {
 
       {/* 仪表盘动画 */}
       {showDashboard && (
-        <div className="absolute inset-0 z-30">
+        <div className="absolute inset-0 z-30 bg-[#000D1A]">
           <canvas
             ref={dashboardRef}
-            className="w-full h-full"
+            className="w-full h-full cursor-pointer"
+            style={{ background: '#000D1A' }}
             onClick={() => {
               setShowDashboard(false);
               if (dashboardAnimationRef.current) {
@@ -845,7 +890,16 @@ export function Terminal() {
         )}
       </div>
       <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0">
-        <TerminalOutput history={history} ref={outputRef} />
+        <div 
+          className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative" 
+          onClick={(e) => {
+            e.preventDefault();
+            focusInput(true);
+          }}
+          ref={outputRef}
+        >
+          <TerminalOutput history={history} />
+        </div>
         <TerminalInput 
           ref={inputRef}
           value={inputValue} 
