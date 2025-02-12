@@ -6,7 +6,7 @@ import { TerminalOutput } from "./TerminalOutput"
 import { simulateLinuxCommand } from "./lib/api"
 
 // 内置命令列表
-const BUILT_IN_COMMANDS = ['help', 'clear', 'sl'];
+const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix'];
 
 // 危险命令列表
 const DANGEROUS_COMMANDS = [
@@ -22,7 +22,7 @@ const VALID_COMMANDS = [
   'rm', 'mv', 'cp',
   
   // 新增趣味命令
-  'cowsay', 'sl', 'fortune',
+  'cowsay', 'sl', 'fortune', 'cmatrix',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -102,14 +102,18 @@ __/ =| o |=-~~\\  /~~\\  /~~\\  /~~\\ __________|       |__
   \\_/      \\O=====O=====O=====O_/  \\__/  \\____|_______/
 `;
 
+// 添加矩阵雨动画状态
 export function Terminal() {
   const [history, setHistory] = useState<string[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [trainPosition, setTrainPosition] = useState<number | null>(null)
+  const [showMatrix, setShowMatrix] = useState(false)
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const trainAnimationRef = useRef<NodeJS.Timeout>()
+  const matrixRef = useRef<HTMLCanvasElement>(null)
+  const matrixAnimationRef = useRef<number>()
 
   // 清理动画定时器
   useEffect(() => {
@@ -117,8 +121,64 @@ export function Terminal() {
       if (trainAnimationRef.current) {
         clearInterval(trainAnimationRef.current);
       }
+      if (matrixAnimationRef.current) {
+        cancelAnimationFrame(matrixAnimationRef.current);
+      }
     };
   }, []);
+
+  // 矩阵雨动画效果
+  useEffect(() => {
+    if (!showMatrix || !matrixRef.current) return;
+
+    const canvas = matrixRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // 设置画布大小
+    const resizeCanvas = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // 字符集
+    const chars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃ1234567890';
+    const fontSize = 16;
+    const columns = Math.floor(canvas.width / fontSize);
+    const drops: number[] = new Array(columns).fill(1);
+
+    // 动画函数
+    function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0F0';
+      ctx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+
+      matrixAnimationRef.current = requestAnimationFrame(draw);
+    }
+
+    matrixAnimationRef.current = requestAnimationFrame(draw);
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (matrixAnimationRef.current) {
+        cancelAnimationFrame(matrixAnimationRef.current);
+      }
+    };
+  }, [showMatrix]);
 
   const focusInput = () => {
     inputRef.current?.focus()
@@ -146,6 +206,7 @@ export function Terminal() {
             "  - cowsay dog Woof        # 生成狗狗",
             "- sl: 显示一辆动态的小火车",
             "- fortune: 随机生成一首优美的唐诗",
+            "- cmatrix: 显示黑客帝国风格的矩阵雨效果",
             "- 其他标准 Linux 命令将通过 AI 模拟执行",
             "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
@@ -166,6 +227,9 @@ export function Terminal() {
             }
             setTrainPosition(position);
           }, 50);
+          break
+        case "cmatrix":
+          setShowMatrix(true)
           break
       }
       setInputValue("")
@@ -268,6 +332,22 @@ export function Terminal() {
           }}
         >
           {TRAIN_ASCII}
+        </div>
+      )}
+
+      {/* 矩阵雨动画 */}
+      {showMatrix && (
+        <div className="absolute inset-0 z-30">
+          <canvas
+            ref={matrixRef}
+            className="w-full h-full"
+            onClick={() => {
+              setShowMatrix(false);
+              if (matrixAnimationRef.current) {
+                cancelAnimationFrame(matrixAnimationRef.current);
+              }
+            }}
+          />
         </div>
       )}
 

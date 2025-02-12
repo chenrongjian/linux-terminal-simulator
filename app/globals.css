@@ -157,3 +157,19 @@ body {
   line-height: 1;
   z-index: 50;
 }
+
+/* 矩阵雨动画相关样式 */
+.matrix-rain {
+  position: absolute;
+  inset: 0;
+  background: black;
+  overflow: hidden;
+  z-index: 50;
+  cursor: pointer;
+}
+
+.matrix-rain canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
