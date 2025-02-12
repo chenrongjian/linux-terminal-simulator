@@ -6,7 +6,7 @@ import { TerminalOutput } from "./TerminalOutput"
 import { simulateLinuxCommand } from "./lib/api"
 
 // 内置命令列表
-const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix', 'asciiquarium', 'dashboard'];
+const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix', 'asciiquarium', 'dashboard', 'oneko'];
 
 // 危险命令列表
 const DANGEROUS_COMMANDS = [
@@ -118,6 +118,28 @@ const FISH_LEFT = [
 const BUBBLE = ["o", "O", "°"];
 const SEAWEED = ["|", ")", "("];
 
+// 添加猫咪 ASCII 字符画
+const NEKO_IDLE = [
+  " /\\___/\\ ",
+  "(  o o  )",
+  "(  =^=  ) ",
+  " (--m--) "
+];
+
+const NEKO_RUNNING = [
+  " /\\___/\\ ",
+  "(  ' '  )",
+  "(  =^=  )~",
+  " (--m--)  "
+];
+
+const NEKO_SLEEPING = [
+  " /\\___/\\ ",
+  "(  - -  )  z",
+  "(  =^=  ) z",
+  " (--m--)   "
+];
+
 // 添加水族箱动画状态
 export function Terminal() {
   const [history, setHistory] = useState<string[]>([])
@@ -127,6 +149,10 @@ export function Terminal() {
   const [showMatrix, setShowMatrix] = useState(false)
   const [showAquarium, setShowAquarium] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
+  const [showNeko, setShowNeko] = useState(false)  // 添加猫咪动画状态
+  const [nekoPosition, setNekoPosition] = useState({ x: 0, y: 0 })
+  const [nekoState, setNekoState] = useState('idle')
+  const lastMoveTime = useRef(Date.now())
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const trainAnimationRef = useRef<NodeJS.Timeout>()
@@ -136,6 +162,7 @@ export function Terminal() {
   const matrixAnimationRef = useRef<number>()
   const aquariumAnimationRef = useRef<number>()
   const dashboardAnimationRef = useRef<number>()
+  const nekoAnimationRef = useRef<number>()
 
   // 清理动画定时器
   useEffect(() => {
@@ -160,7 +187,7 @@ export function Terminal() {
     if (!showMatrix || !matrixRef.current) return;
 
     const canvas = matrixRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
     if (!ctx) return;
 
     // 设置画布大小
@@ -445,8 +472,91 @@ export function Terminal() {
     };
   }, [showDashboard]);
 
+  // 猫咪动画效果
+  useEffect(() => {
+    if (!showNeko) return;
+
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+    let isMoving = false;
+    let sleepTimeout: NodeJS.Timeout;
+    const terminalElement = document.querySelector('.terminal-container');
+    if (!terminalElement) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const now = Date.now();
+      lastMoveTime.current = now;
+      isMoving = true;
+      
+      // 获取终端窗口的位置和大小
+      const terminalRect = terminalElement.getBoundingClientRect();
+      
+      // 计算鼠标在终端内的相对位置
+      const relativeX = e.clientX - terminalRect.left;
+      const relativeY = e.clientY - terminalRect.top;
+      
+      // 限制鼠标位置在终端窗口内
+      const mouseX = Math.min(Math.max(relativeX, 32), terminalRect.width - 32);
+      const mouseY = Math.min(Math.max(relativeY, 32), terminalRect.height - 32);
+      
+      // 计算与鼠标的距离（使用相对位置）
+      const dx = mouseX - nekoPosition.x;
+      const dy = mouseY - nekoPosition.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // 如果距离太近，不需要移动
+      if (distance < 20) {
+        setNekoState('idle');
+        return;
+      }
+
+      // 更新猫咪位置和状态（使用相对位置）
+      const speed = 5;
+      const angle = Math.atan2(dy, dx);
+      const newX = Math.min(Math.max(
+        nekoPosition.x + Math.cos(angle) * speed,
+        32
+      ), terminalRect.width - 32);
+      const newY = Math.min(Math.max(
+        nekoPosition.y + Math.sin(angle) * speed,
+        32
+      ), terminalRect.height - 32);
+      
+      setNekoPosition({ x: newX, y: newY });
+      setNekoState('running');
+
+      // 清除之前的睡眠定时器
+      if (sleepTimeout) {
+        clearTimeout(sleepTimeout);
+      }
+
+      // 如果停止移动 3 秒，进入睡眠状态
+      sleepTimeout = setTimeout(() => {
+        if (Date.now() - lastMoveTime.current >= 3000) {
+          setNekoState('sleeping');
+        }
+      }, 3000);
+
+      lastMouseX = mouseX;
+      lastMouseY = mouseY;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (sleepTimeout) {
+        clearTimeout(sleepTimeout);
+      }
+    };
+  }, [showNeko, nekoPosition]);
+
   const focusInput = () => {
     inputRef.current?.focus()
+    // 点击终端时只关闭其他动画效果，保持猫咪动画
+    setShowMatrix(false)
+    setShowAquarium(false)
+    setShowDashboard(false)
   }
 
   const handleCommand = async (command: string) => {
@@ -474,6 +584,7 @@ export function Terminal() {
             "- cmatrix: 显示黑客帝国风格的矩阵雨效果",
             "- asciiquarium: 显示水族箱动画效果",
             "- dashboard: 显示系统监控仪表盘",
+            "- oneko: 切换猫咪动画的显示状态",
             "- 其他标准 Linux 命令将通过 AI 模拟执行",
             "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
@@ -503,6 +614,19 @@ export function Terminal() {
           break
         case "dashboard":
           setShowDashboard(true)
+          break
+        case "oneko":
+          const terminalEl = document.querySelector('.terminal-container');
+          if (terminalEl) {
+            const rect = terminalEl.getBoundingClientRect();
+            setShowNeko(!showNeko);
+            // 使用相对位置而不是绝对位置
+            setNekoPosition({ 
+              x: 100,  // 直接使用相对位置
+              y: 100
+            });
+            setNekoState('idle');
+          }
           break
       }
       setInputValue("")
@@ -582,7 +706,7 @@ export function Terminal() {
 
   return (
     <div 
-      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative min-h-[60vh] md:min-h-[70vh] flex flex-col"
+      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative min-h-[60vh] md:min-h-[70vh] flex flex-col terminal-container"
       onClick={focusInput}
     >
       {/* CRT 屏幕效果 */}
@@ -653,6 +777,28 @@ export function Terminal() {
               }
             }}
           />
+        </div>
+      )}
+
+      {/* 添加猫咪动画 */}
+      {showNeko && (
+        <div 
+          className="absolute z-50 pointer-events-none select-none font-mono whitespace-pre text-yellow-300"
+          style={{ 
+            left: `${nekoPosition.x}px`,
+            top: `${nekoPosition.y}px`,
+            transition: 'all 0.1s linear'
+          }}
+        >
+          {nekoState === 'sleeping' && NEKO_SLEEPING.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+          {nekoState === 'running' && NEKO_RUNNING.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+          {nekoState === 'idle' && NEKO_IDLE.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
         </div>
       )}
 

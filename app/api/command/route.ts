@@ -42,7 +42,7 @@ const VALID_COMMANDS = [
   'cp', 'mv',
   
   // ASCII 艺术字符命令和趣味命令
-  'cowsay', 'fortune', 'cmatrix', 'asciiquarium', 'dashboard',
+  'cowsay', 'fortune', 'cmatrix', 'asciiquarium', 'dashboard', 'oneko',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
