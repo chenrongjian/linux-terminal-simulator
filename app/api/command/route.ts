@@ -249,8 +249,11 @@ l = ls -lah`
           content: sanitizedCommand
         }
       ],
-      stream: false,
-      max_tokens: MAX_TOKENS
+      temperature: 0.7,
+      max_tokens: MAX_TOKENS,
+      top_p: 0.95,
+      frequency_penalty: 0,
+      presence_penalty: 0
     });
 
     return NextResponse.json(response.data, {
