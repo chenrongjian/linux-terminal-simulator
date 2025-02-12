@@ -22,7 +22,7 @@ const VALID_COMMANDS = [
   'rm', 'mv', 'cp',
   
   // 新增趣味命令
-  'cowsay', 'sl',
+  'cowsay', 'sl', 'fortune',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -81,7 +81,7 @@ function isDangerousCommand(command: string): boolean {
 // 检查命令是否为趣味字符命令
 function isAsciiArtCommand(command: string): boolean {
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
-  return ['cowsay', 'sl'].includes(mainCommand);
+  return ['cowsay', 'sl', 'fortune'].includes(mainCommand);
 }
 
 // 检查输入是否包含中文字符
@@ -145,6 +145,7 @@ export function Terminal() {
             "  - cowsay cat Hello       # 生成猫咪",
             "  - cowsay dog Woof        # 生成狗狗",
             "- sl: 显示一辆动态的小火车",
+            "- fortune: 随机生成一首优美的唐诗",
             "- 其他标准 Linux 命令将通过 AI 模拟执行",
             "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
@@ -176,7 +177,7 @@ export function Terminal() {
     if (isAsciiArtCommand(command.split(' ')[0])) {
       setIsProcessing(true)
       try {
-        const response = await simulateLinuxCommand(command, true) // 添加第二个参数表示这是ASCII艺术命令
+        const response = await simulateLinuxCommand(command.toLowerCase(), true) // 确保命令小写并标记为 ASCII 艺术命令
         const lines = response.split('\n')
         setHistory((prev) => [...prev, ...lines])
       } catch (error: any) {

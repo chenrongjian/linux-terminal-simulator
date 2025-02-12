@@ -41,8 +41,8 @@ const VALID_COMMANDS = [
   'ls', 'll', 'la', 'l', 'pwd', 'cd', 'mkdir', 'touch', 'find',
   'cp', 'mv',
   
-  // ASCII 艺术字符命令
-  'cowsay',
+  // ASCII 艺术字符命令和趣味命令
+  'cowsay', 'fortune',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -95,7 +95,7 @@ function isDangerousCommand(command: string): boolean {
 // 检查命令是否为 ASCII 艺术命令
 function isAsciiArtCommand(command: string): boolean {
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
-  return ['cowsay'].includes(mainCommand);
+  return ['cowsay', 'fortune'].includes(mainCommand);
 }
 
 // 清理和验证输入
@@ -202,18 +202,37 @@ export async function POST(request: Request) {
 
     // 检查是否为 ASCII 艺术命令
     if (isAsciiArtCommand(command.split(' ')[0])) {
-      // 获取要生成的动物/对象类型和文本
-      const [cmd, type, ...textParts] = command.split(' ');
-      const text = type ? textParts.join(' ') : type;
-      const artType = text ? type : 'tux'; // 如果没有文本，则 type 就是文本，使用默认 tux
+      // 获取命令类型
+      const [cmd, ...args] = command.split(' ');
+      
+      // 根据不同命令类型设置不同的 prompt
+      let systemPrompt = '';
+      let promptCommand = command;
 
-      const response = await api.post(API_URL, {
-        model: MODEL_NAME,
-        stream: false,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an ASCII art generator. Generate ASCII art based on the following rules:
+      if (cmd === 'fortune') {
+        systemPrompt = `你是一个中国古典诗词生成器。每次调用时，随机生成一首优美的唐诗，并遵循以下规则：
+1. 只生成唐代诗人的作品
+2. 包含诗题、作者和诗句
+3. 使用中文输出
+4. 格式要求：
+   [诗题]
+   [作者]
+   [诗句]
+   
+示例：
+春望
+杜甫
+国破山河在，城春草木深。
+感时花溅泪，恨别鸟惊心。
+烽火连三月，家书抵万金。
+白头搔更短，浑欲不胜簪。`;
+      } else if (cmd === 'cowsay') {
+        // 获取要生成的动物/对象类型和文本
+        const [type, ...textParts] = args;
+        const text = type ? textParts.join(' ') : type;
+        const artType = text ? type : 'tux'; // 如果没有文本，则 type 就是文本，使用默认 tux
+
+        systemPrompt = `You are an ASCII art generator. Generate ASCII art based on the following rules:
 
 1. If the input contains a specific animal/object type (like cat, dog, tux, etc.), generate ASCII art of that type
 2. Always put the text in a speech bubble above the ASCII art
@@ -228,11 +247,22 @@ Examples of different types:
 - For "dog": Generate a cute dog
 - For other types: Generate a suitable ASCII art representation
 
-If no specific type is provided, default to generating Tux (the Linux penguin).`
+If no specific type is provided, default to generating Tux (the Linux penguin).`;
+
+        promptCommand = `Generate ASCII art of type "${artType}" saying "${text || type}"`;
+      }
+
+      const response = await api.post(API_URL, {
+        model: MODEL_NAME,
+        stream: false,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
           },
           {
             role: 'user',
-            content: `Generate ASCII art of type "${artType}" saying "${text || type}"`
+            content: promptCommand
           }
         ],
         max_tokens: MAX_TOKENS,
