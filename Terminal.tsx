@@ -6,7 +6,7 @@ import { TerminalOutput } from "./TerminalOutput"
 import { simulateLinuxCommand } from "./lib/api"
 
 // 内置命令列表
-const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix', 'asciiquarium'];
+const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix', 'asciiquarium', 'dashboard'];
 
 // 危险命令列表
 const DANGEROUS_COMMANDS = [
@@ -22,7 +22,7 @@ const VALID_COMMANDS = [
   'rm', 'mv', 'cp',
   
   // 新增趣味命令
-  'cowsay', 'sl', 'fortune', 'cmatrix', 'asciiquarium',
+  'cowsay', 'sl', 'fortune', 'cmatrix', 'asciiquarium', 'dashboard',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -126,13 +126,16 @@ export function Terminal() {
   const [trainPosition, setTrainPosition] = useState<number | null>(null)
   const [showMatrix, setShowMatrix] = useState(false)
   const [showAquarium, setShowAquarium] = useState(false)
+  const [showDashboard, setShowDashboard] = useState(false)
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const trainAnimationRef = useRef<NodeJS.Timeout>()
   const matrixRef = useRef<HTMLCanvasElement>(null)
   const aquariumRef = useRef<HTMLCanvasElement>(null)
+  const dashboardRef = useRef<HTMLCanvasElement>(null)
   const matrixAnimationRef = useRef<number>()
   const aquariumAnimationRef = useRef<number>()
+  const dashboardAnimationRef = useRef<number>()
 
   // 清理动画定时器
   useEffect(() => {
@@ -145,6 +148,9 @@ export function Terminal() {
       }
       if (aquariumAnimationRef.current) {
         cancelAnimationFrame(aquariumAnimationRef.current);
+      }
+      if (dashboardAnimationRef.current) {
+        cancelAnimationFrame(dashboardAnimationRef.current);
       }
     };
   }, []);
@@ -307,6 +313,138 @@ export function Terminal() {
     };
   }, [showAquarium]);
 
+  // 仪表盘动画效果
+  useEffect(() => {
+    if (!showDashboard || !dashboardRef.current) return;
+
+    const canvas = dashboardRef.current;
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    if (!ctx) return;
+
+    // 设置画布大小
+    const resizeCanvas = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // 初始化数据
+    let time = 0;
+    const cpuData: number[] = Array(60).fill(0);
+    const memoryData: number[] = Array(60).fill(0);
+    const networkData: number[] = Array(60).fill(0);
+    let activeConnections = 0;
+    let totalRequests = 0;
+    let securityLevel = 100;
+
+    // 动画函数
+    function draw() {
+      // 清空画布
+      ctx.fillStyle = '#000D1A';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制网格背景
+      ctx.strokeStyle = '#0F3';
+      ctx.lineWidth = 0.3;
+      const gridSize = 30;
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // 更新数据
+      time += 0.1;
+      cpuData.shift();
+      cpuData.push(50 + 30 * Math.sin(time * 0.5) + Math.random() * 20);
+      memoryData.shift();
+      memoryData.push(60 + 20 * Math.cos(time * 0.3) + Math.random() * 15);
+      networkData.shift();
+      networkData.push(40 + 35 * Math.sin(time * 0.8) + Math.random() * 25);
+      activeConnections = Math.floor(100 + 50 * Math.sin(time * 0.2));
+      totalRequests += Math.floor(Math.random() * 10);
+      securityLevel = 85 + 10 * Math.sin(time * 0.1);
+
+      // 绘制标题
+      ctx.font = '20px monospace';
+      ctx.fillStyle = '#0F0';
+      ctx.fillText('SYSTEM MONITORING DASHBOARD', 20, 30);
+      ctx.fillText('STATUS: ACTIVE', canvas.width - 200, 30);
+
+      // 绘制图表
+      const drawChart = (data: number[], y: number, title: string) => {
+        ctx.fillStyle = '#0F3';
+        ctx.font = '16px monospace';
+        ctx.fillText(title, 20, y - 10);
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#0F3';
+        ctx.lineWidth = 2;
+        data.forEach((value, index) => {
+          const x = 20 + (index * (canvas.width - 40) / 59);
+          const h = value * (80 / 100);
+          if (index === 0) {
+            ctx.moveTo(x, y + 80 - h);
+          } else {
+            ctx.lineTo(x, y + 80 - h);
+          }
+        });
+        ctx.stroke();
+      };
+
+      // CPU 使用率图表
+      drawChart(cpuData, 80, `CPU USAGE: ${cpuData[cpuData.length - 1].toFixed(1)}%`);
+      
+      // 内存使用率图表
+      drawChart(memoryData, 200, `MEMORY USAGE: ${memoryData[memoryData.length - 1].toFixed(1)}%`);
+      
+      // 网络流量图表
+      drawChart(networkData, 320, `NETWORK TRAFFIC: ${networkData[networkData.length - 1].toFixed(1)} MB/s`);
+
+      // 绘制系统信息
+      ctx.fillStyle = '#0F3';
+      ctx.font = '16px monospace';
+      const info = [
+        `ACTIVE CONNECTIONS: ${activeConnections}`,
+        `TOTAL REQUESTS: ${totalRequests}`,
+        `SECURITY LEVEL: ${securityLevel.toFixed(1)}%`,
+        `UPTIME: ${Math.floor(time)}s`,
+        `SYSTEM STATUS: OPERATIONAL`,
+        `THREAT LEVEL: LOW`,
+      ];
+      info.forEach((text, index) => {
+        ctx.fillText(text, canvas.width - 300, 80 + index * 30);
+      });
+
+      // 绘制装饰性的十六进制数据流
+      ctx.font = '12px monospace';
+      ctx.fillStyle = '#0F3';
+      for (let i = 0; i < 10; i++) {
+        const hex = Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0');
+        ctx.fillText(hex, 20 + i * 100, canvas.height - 20);
+      }
+
+      dashboardAnimationRef.current = requestAnimationFrame(draw);
+    }
+
+    dashboardAnimationRef.current = requestAnimationFrame(draw);
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (dashboardAnimationRef.current) {
+        cancelAnimationFrame(dashboardAnimationRef.current);
+      }
+    };
+  }, [showDashboard]);
+
   const focusInput = () => {
     inputRef.current?.focus()
   }
@@ -335,6 +473,7 @@ export function Terminal() {
             "- fortune: 随机生成一首优美的唐诗",
             "- cmatrix: 显示黑客帝国风格的矩阵雨效果",
             "- asciiquarium: 显示水族箱动画效果",
+            "- dashboard: 显示系统监控仪表盘",
             "- 其他标准 Linux 命令将通过 AI 模拟执行",
             "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
@@ -361,6 +500,9 @@ export function Terminal() {
           break
         case "asciiquarium":
           setShowAquarium(true)
+          break
+        case "dashboard":
+          setShowDashboard(true)
           break
       }
       setInputValue("")
@@ -492,6 +634,22 @@ export function Terminal() {
               setShowAquarium(false);
               if (aquariumAnimationRef.current) {
                 cancelAnimationFrame(aquariumAnimationRef.current);
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* 仪表盘动画 */}
+      {showDashboard && (
+        <div className="absolute inset-0 z-30">
+          <canvas
+            ref={dashboardRef}
+            className="w-full h-full"
+            onClick={() => {
+              setShowDashboard(false);
+              if (dashboardAnimationRef.current) {
+                cancelAnimationFrame(dashboardAnimationRef.current);
               }
             }}
           />
