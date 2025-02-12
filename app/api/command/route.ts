@@ -83,15 +83,10 @@ function isValidCommand(command: string): boolean {
   return VALID_COMMANDS.includes(cmd);
 }
 
-// 检查命令是否安全
-function isCommandSafe(command: string): boolean {
+// 检查命令是否为危险命令
+function isDangerousCommand(command: string): boolean {
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
-  // 只检查主命令是否在危险命令列表中
-  if (DANGEROUS_COMMANDS.includes(mainCommand)) {
-    return false;
-  }
-  // 检查是否包含 shell 注入相关的特殊字符
-  return !/[`$]|\$\(|\||>|</.test(command);
+  return DANGEROUS_COMMANDS.includes(mainCommand);
 }
 
 // 清理和验证输入
@@ -100,12 +95,14 @@ function sanitizeCommand(command: string): string {
   if (/[\u4e00-\u9fa5]/.test(command)) {
     return 'invalid_command';
   }
+  
   // 检查是否为有效命令
   if (!isValidCommand(command)) {
     return 'invalid_command';
   }
-  // 只移除危险的特殊字符，保留命令参数中的连字符和其他必要字符
-  return command.trim().replace(/[;&|><`$\\]/g, '');
+  
+  // 只移除危险的 shell 特殊字符，保留所有其他字符
+  return command.trim().replace(/[`]|\$|\$\(|\||>|</g, '');
 }
 
 export async function POST(request: Request) {
@@ -181,8 +178,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 检查命令安全性
-    if (!isCommandSafe(command)) {
+    // 检查是否为危险命令
+    if (isDangerousCommand(command)) {
       return NextResponse.json(
         { choices: [{ message: { content: 'Operation not permitted' } }] },
         { 
@@ -195,7 +192,7 @@ export async function POST(request: Request) {
     }
 
     // 清理命令，只移除真正危险的字符
-    const sanitizedCommand = command.trim().replace(/[;&|><`$\\]/g, '');
+    const sanitizedCommand = command.trim().replace(/[`]|\$|\$\(|\||>|</g, '');
 
     // 调用 API
     const response = await api.post(API_URL, {
@@ -210,7 +207,6 @@ export async function POST(request: Request) {
 3. NEVER provide explanations or additional text
 4. EXACTLY simulate real Linux terminal output format
 5. For invalid commands, ONLY return "bash: xxx: command not found"
-6. For dangerous commands, return "Operation not permitted"
 
 Command output format examples:
 
@@ -236,6 +232,9 @@ hello
 
 $ cat file.txt
 cat: file.txt: No such file or directory
+
+$ cp file1 file2
+cp: cannot stat 'file1': No such file or directory
 
 $ xyz
 bash: xyz: command not found
