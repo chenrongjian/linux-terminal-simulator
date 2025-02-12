@@ -483,6 +483,7 @@ export function Terminal() {
     const terminalElement = document.querySelector('.terminal-container');
     if (!terminalElement) return;
 
+    // 处理鼠标移动
     const handleMouseMove = (e: MouseEvent) => {
       const now = Date.now();
       lastMoveTime.current = now;
@@ -495,11 +496,36 @@ export function Terminal() {
       const relativeX = e.clientX - terminalRect.left;
       const relativeY = e.clientY - terminalRect.top;
       
-      // 限制鼠标位置在终端窗口内
-      const mouseX = Math.min(Math.max(relativeX, 32), terminalRect.width - 32);
-      const mouseY = Math.min(Math.max(relativeY, 32), terminalRect.height - 32);
+      updateNekoPosition(terminalRect, relativeX, relativeY);
+    };
+
+    // 处理触摸移动
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // 防止页面滚动
+      const now = Date.now();
+      lastMoveTime.current = now;
+      isMoving = true;
       
-      // 计算与鼠标的距离（使用相对位置）
+      // 获取终端窗口的位置和大小
+      const terminalRect = terminalElement.getBoundingClientRect();
+      
+      // 获取第一个触摸点
+      const touch = e.touches[0];
+      
+      // 计算触摸点在终端内的相对位置
+      const relativeX = touch.clientX - terminalRect.left;
+      const relativeY = touch.clientY - terminalRect.top;
+      
+      updateNekoPosition(terminalRect, relativeX, relativeY);
+    };
+
+    // 更新猫咪位置的通用函数
+    const updateNekoPosition = (terminalRect: DOMRect, x: number, y: number) => {
+      // 限制位置在终端窗口内
+      const mouseX = Math.min(Math.max(x, 32), terminalRect.width - 32);
+      const mouseY = Math.min(Math.max(y, 32), terminalRect.height - 32);
+      
+      // 计算与猫咪的距离
       const dx = mouseX - nekoPosition.x;
       const dy = mouseY - nekoPosition.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -510,7 +536,7 @@ export function Terminal() {
         return;
       }
 
-      // 更新猫咪位置和状态（使用相对位置）
+      // 更新猫咪位置和状态
       const speed = 5;
       const angle = Math.atan2(dy, dx);
       const newX = Math.min(Math.max(
@@ -536,15 +562,16 @@ export function Terminal() {
           setNekoState('sleeping');
         }
       }, 3000);
-
-      lastMouseX = mouseX;
-      lastMouseY = mouseY;
     };
 
+    // 添加事件监听器
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
 
+    // 清理事件监听器
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove);
       if (sleepTimeout) {
         clearTimeout(sleepTimeout);
       }
