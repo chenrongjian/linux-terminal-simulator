@@ -115,6 +115,7 @@ export function Terminal() {
             "可用命令:",
             "- help: 显示帮助信息",
             "- clear: 清空终端",
+            "- cowsay: 生成可爱的 Linux 企鹅字符画（例如：cowsay Hello World）",
             "- 其他标准 Linux 命令将通过 AI 模拟执行",
             "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
