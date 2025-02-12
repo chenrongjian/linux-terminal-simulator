@@ -15,7 +15,7 @@ body {
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
@@ -93,18 +93,38 @@ body {
   }
 }
 
-/* CRT 扫描线动画 */
-@keyframes scan {
-  from {
-    background-position: 0 0;
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* 动画效果 */
+@keyframes scanline {
+  0% {
+    transform: translateY(0);
   }
-  to {
-    background-position: 0 100%;
+  100% {
+    transform: translateY(100%);
   }
 }
 
 .animate-scan {
-  animation: scan 8s linear infinite;
+  animation: scanline 8s linear infinite;
 }
 
 /* CRT 文本发光效果 */

@@ -202,7 +202,7 @@ export function Terminal() {
 
   return (
     <div 
-      className="w-full max-w-3xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative"
+      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative min-h-[60vh] md:min-h-[70vh] flex flex-col"
       onClick={focusInput}
     >
       {/* CRT 屏幕效果 */}
@@ -230,7 +230,7 @@ export function Terminal() {
           </div>
         )}
       </div>
-      <div className="p-2 sm:p-4 relative z-10">
+      <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0">
         <TerminalOutput history={history} ref={outputRef} />
         <TerminalInput 
           ref={inputRef}

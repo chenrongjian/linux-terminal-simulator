@@ -26,15 +26,15 @@ export const TerminalInput = forwardRef<HTMLInputElement, TerminalInputProps>(
     }
 
     return (
-      <div className="flex items-center">
-        <span className="text-green-400 mr-2 text-sm sm:text-base">$</span>
+      <div className="flex items-center mt-2">
+        <span className="text-green-400 mr-2 text-sm sm:text-base flex-shrink-0">$</span>
         <input
           ref={inputRef}
           type="text"
           value={value}
           onChange={onChange}
           onKeyDown={handleKeyDown}
-          className="bg-transparent text-white focus:outline-none flex-grow font-mono text-sm sm:text-base w-full"
+          className="bg-transparent text-white focus:outline-none flex-1 font-mono text-sm sm:text-base min-w-0"
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck="false"
