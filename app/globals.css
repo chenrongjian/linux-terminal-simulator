@@ -92,3 +92,22 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* CRT 扫描线动画 */
+@keyframes scan {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 100%;
+  }
+}
+
+.animate-scan {
+  animation: scan 8s linear infinite;
+}
+
+/* CRT 文本发光效果 */
+.text-glow {
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+}

@@ -21,6 +21,9 @@ const VALID_COMMANDS = [
   'ls', 'll', 'la', 'l', 'pwd', 'cd', 'mkdir', 'touch', 'find',
   'rm', 'mv', 'cp',
   
+  // 新增趣味命令
+  'cowsay',
+  
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
   
@@ -75,6 +78,12 @@ function isDangerousCommand(command: string): boolean {
   return DANGEROUS_COMMANDS.includes(mainCommand);
 }
 
+// 检查命令是否为趣味字符命令
+function isAsciiArtCommand(command: string): boolean {
+  const mainCommand = command.trim().split(' ')[0].toLowerCase();
+  return ['cowsay'].includes(mainCommand);
+}
+
 // 检查输入是否包含中文字符
 function containsChinese(text: string): boolean {
   return /[\u4e00-\u9fa5]/.test(text);
@@ -113,6 +122,24 @@ export function Terminal() {
       }
       setInputValue("")
       focusInput()
+      return;
+    }
+
+    // 检查是否是趣味字符命令
+    if (isAsciiArtCommand(command.split(' ')[0])) {
+      setIsProcessing(true)
+      try {
+        const response = await simulateLinuxCommand(command, true) // 添加第二个参数表示这是ASCII艺术命令
+        const lines = response.split('\n')
+        setHistory((prev) => [...prev, ...lines])
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || error.message || '未知错误';
+        setHistory((prev) => [...prev, `错误: ${errorMessage}`])
+      } finally {
+        setIsProcessing(false)
+        setInputValue("")
+        focusInput()
+      }
       return;
     }
 
@@ -170,10 +197,20 @@ export function Terminal() {
 
   return (
     <div 
-      className="w-full max-w-3xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8"
+      className="w-full max-w-3xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative"
       onClick={focusInput}
     >
-      <div className="bg-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between">
+      {/* CRT 屏幕效果 */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* 扫描线效果 */}
+        <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,_rgba(32,32,32,0.2)_50%,_transparent_100%)] bg-[length:100%_4px] animate-scan"></div>
+        {/* 屏幕发光效果 */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.1)_0%,_rgba(0,0,0,0.1)_100%)]"></div>
+        {/* 屏幕弯曲效果 */}
+        <div className="absolute inset-0 [box-shadow:inset_0_0_50px_rgba(0,0,0,0.5)]"></div>
+      </div>
+
+      <div className="bg-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between relative z-10">
         <div className="flex items-center">
           <div className="flex space-x-1 sm:space-x-2">
             <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
@@ -188,7 +225,7 @@ export function Terminal() {
           </div>
         )}
       </div>
-      <div className="p-2 sm:p-4">
+      <div className="p-2 sm:p-4 relative z-10">
         <TerminalOutput history={history} ref={outputRef} />
         <TerminalInput 
           ref={inputRef}

@@ -10,8 +10,8 @@ export const revalidate = 0;
 
 // 从环境变量获取配置
 const API_KEY = process.env.DEEPSEEK_API_KEY;
-const API_URL = process.env.AI_MODEL_API_URL || 'https://cloud.luchentech.com/api/maas/chat/completions';
-const MODEL_NAME = process.env.AI_MODEL_NAME || 'deepseek_r1';
+const API_URL = process.env.AI_MODEL_API_URL || 'https://api.siliconflow.cn/v1/chat/completions';
+const MODEL_NAME = process.env.AI_MODEL_NAME || 'Qwen/Qwen2.5-Coder-7B-Instruct';
 const MAX_TOKENS = parseInt(process.env.AI_MODEL_MAX_TOKENS || '512', 10);
 
 // 验证必要的环境变量
@@ -40,6 +40,9 @@ const VALID_COMMANDS = [
   // 文件和目录操作
   'ls', 'll', 'la', 'l', 'pwd', 'cd', 'mkdir', 'touch', 'find',
   'cp', 'mv',
+  
+  // ASCII 艺术字符命令
+  'cowsay',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -87,6 +90,12 @@ function isValidCommand(command: string): boolean {
 function isDangerousCommand(command: string): boolean {
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
   return DANGEROUS_COMMANDS.includes(mainCommand);
+}
+
+// 检查命令是否为 ASCII 艺术命令
+function isAsciiArtCommand(command: string): boolean {
+  const mainCommand = command.trim().split(' ')[0].toLowerCase();
+  return ['cowsay'].includes(mainCommand);
 }
 
 // 清理和验证输入
@@ -191,12 +200,48 @@ export async function POST(request: Request) {
       );
     }
 
+    // 检查是否为 ASCII 艺术命令
+    if (isAsciiArtCommand(command.split(' ')[0])) {
+      const response = await api.post(API_URL, {
+        model: MODEL_NAME,
+        stream: false,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an ASCII art generator. When receiving a cowsay command followed by text, generate an ASCII art of a cute Linux penguin (Tux) with a speech bubble containing the text. Follow these rules:
+1. Always generate ASCII art that fits within 80 columns
+2. Use simple ASCII characters to ensure compatibility
+3. Make the penguin cute and recognizable as Tux
+4. Put the input text in a speech bubble above the penguin
+5. Return ONLY the ASCII art, no explanations or additional text`
+          },
+          {
+            role: 'user',
+            content: command
+          }
+        ],
+        max_tokens: MAX_TOKENS,
+        temperature: 0.7
+      });
+
+      return NextResponse.json(
+        { choices: [{ message: { content: response.data.choices[0].message.content } }] },
+        { 
+          headers: {
+            'Cache-Control': 'no-store, no-cache',
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        }
+      );
+    }
+
     // 清理命令，只移除真正危险的字符
     const sanitizedCommand = command.trim().replace(/[`]|\$|\$\(|\||>|</g, '');
 
     // 调用 API
     const response = await api.post(API_URL, {
       model: MODEL_NAME,
+      stream: false,
       messages: [
         {
           role: 'system',
@@ -206,43 +251,7 @@ export async function POST(request: Request) {
 2. NEVER respond to questions or conversations
 3. NEVER provide explanations or additional text
 4. EXACTLY simulate real Linux terminal output format
-5. For invalid commands, ONLY return "bash: xxx: command not found"
-
-Command output format examples:
-
-$ ls
-Documents
-Downloads
-Pictures
-Desktop
-.bashrc
-
-$ ll
-drwxr-xr-x 2 user user 4096 Feb 11 10:30 Documents
-drwxr-xr-x 2 user user 4096 Feb 11 10:30 Downloads
-drwxr-xr-x 2 user user 4096 Feb 11 10:30 Pictures
-drwxr-xr-x 2 user user 4096 Feb 11 10:30 Desktop
--rw-r--r-- 1 user user  220 Feb 11 10:30 .bashrc
-
-$ pwd
-/home/user
-
-$ echo hello
-hello
-
-$ cat file.txt
-cat: file.txt: No such file or directory
-
-$ cp file1 file2
-cp: cannot stat 'file1': No such file or directory
-
-$ xyz
-bash: xyz: command not found
-
-Supported command aliases:
-ll = ls -l
-la = ls -la
-l = ls -lah`
+5. For invalid commands, ONLY return "bash: xxx: command not found"`
         },
         {
           role: 'user',

@@ -12,10 +12,11 @@ interface ApiErrorResponse {
   error: string;
 }
 
-export async function simulateLinuxCommand(command: string): Promise<string> {
+export async function simulateLinuxCommand(command: string, isAsciiArt: boolean = false): Promise<string> {
   try {
     const response = await axios.post<ApiResponse>('/api/command', {
-      command
+      command,
+      isAsciiArt
     });
 
     if (!response.data.choices || !response.data.choices[0]) {
