@@ -8,7 +8,7 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "Linux 终端模拟器",
-    "description": "一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令。",
+    "description": "一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令和趣味 ASCII 艺术生成。",
     "applicationCategory": "教育工具",
     "operatingSystem": "Web 浏览器",
     "offers": {
@@ -20,8 +20,11 @@ export default function Home() {
       "支持基本的 Linux 命令模拟",
       "实时命令响应",
       "命令输出格式化显示",
-      "内置命令别名支持"
-    ]
+      "内置命令别名支持",
+      "支持 cowsay 命令生成可爱的 Tux 企鹅字符画",
+      "AI 驱动的命令输出生成"
+    ],
+    "keywords": "Linux,终端模拟器,命令行,Web 终端,Linux 学习,Next.js,AI,cowsay,ASCII art,Tux,企鹅字符画"
   }
 
   return (
