@@ -9,6 +9,13 @@
 - 实时命令响应
 - 命令输出格式化显示
 - 内置命令别名支持（如：ll、la）
+- 丰富的趣味命令支持
+  - ASCII 字符画生成（cowsay）
+  - 动态火车动画（sl）
+  - 唐诗生成器（fortune）
+  - 矩阵雨效果（cmatrix）
+  - ASCII 水族箱（asciiquarium）
+  - 系统监控仪表盘（dashboard）
 - 安全性保护（禁止危险命令）
 - 速率限制保护
 
@@ -55,6 +62,16 @@ npm run dev
   - ll = ls -l
   - la = ls -la
   - l = ls -lah
+- 趣味命令：
+  - cowsay：生成 ASCII 字符画小动物说话
+    - cowsay Hello World     # 生成 Tux 企鹅
+    - cowsay cat Hello       # 生成猫咪
+    - cowsay dog Woof       # 生成狗狗
+  - sl：显示一辆动态的小火车动画
+  - fortune：随机生成一首优美的唐诗
+  - cmatrix：显示黑客帝国风格的矩阵雨效果
+  - asciiquarium：显示动态水族箱动画，包含游动的鱼、气泡和水草
+  - dashboard：显示炫酷的系统监控仪表盘，包含 CPU、内存、网络等动态图表
 
 ## 部署
 
