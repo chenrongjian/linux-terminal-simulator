@@ -6,7 +6,7 @@ import { TerminalOutput } from "./TerminalOutput"
 import { simulateLinuxCommand } from "./lib/api"
 
 // 内置命令列表
-const BUILT_IN_COMMANDS = ['help', 'clear'];
+const BUILT_IN_COMMANDS = ['help', 'clear', 'sl'];
 
 // 危险命令列表
 const DANGEROUS_COMMANDS = [
@@ -22,7 +22,7 @@ const VALID_COMMANDS = [
   'rm', 'mv', 'cp',
   
   // 新增趣味命令
-  'cowsay',
+  'cowsay', 'sl',
   
   // 文件内容操作
   'cat', 'head', 'tail', 'less', 'more', 'grep', 'wc', 'sort', 'uniq',
@@ -81,7 +81,7 @@ function isDangerousCommand(command: string): boolean {
 // 检查命令是否为趣味字符命令
 function isAsciiArtCommand(command: string): boolean {
   const mainCommand = command.trim().split(' ')[0].toLowerCase();
-  return ['cowsay'].includes(mainCommand);
+  return ['cowsay', 'sl'].includes(mainCommand);
 }
 
 // 检查输入是否包含中文字符
@@ -89,12 +89,36 @@ function containsChinese(text: string): boolean {
   return /[\u4e00-\u9fa5]/.test(text);
 }
 
+const TRAIN_ASCII = `
+      ====        ________                ___________
+  _D _|  |_______/        \\__I_I_____===__|_________/
+   |(_)---  |   H\\________/ |   |        =|___ ___/
+   /     |  |   H  |  |     |   |         ||_| |
+  |      |  |   H  |__--------------------| [___] |
+  | ________|___H__/__|_____/[][]~\\_______|       |
+  |/ |   |-----------I_____I [][] []  D   |=======|__
+__/ =| o |=-~~\\  /~~\\  /~~\\  /~~\\ __________|       |__
+ |/-=|___|=    ||    ||    ||    |  __  \\   |       |
+  \\_/      \\O=====O=====O=====O_/  \\__/  \\____|_______/
+`;
+
 export function Terminal() {
   const [history, setHistory] = useState<string[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [trainPosition, setTrainPosition] = useState<number | null>(null)
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const trainAnimationRef = useRef<NodeJS.Timeout>()
+
+  // 清理动画定时器
+  useEffect(() => {
+    return () => {
+      if (trainAnimationRef.current) {
+        clearInterval(trainAnimationRef.current);
+      }
+    };
+  }, []);
 
   const focusInput = () => {
     inputRef.current?.focus()
@@ -120,9 +144,27 @@ export function Terminal() {
             "  - cowsay Hello World     # 生成 Tux 企鹅",
             "  - cowsay cat Hello       # 生成猫咪",
             "  - cowsay dog Woof        # 生成狗狗",
+            "- sl: 显示一辆动态的小火车",
             "- 其他标准 Linux 命令将通过 AI 模拟执行",
             "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
           ])
+          break
+        case "sl":
+          // 启动火车动画
+          setTrainPosition(100) // 从右侧开始
+          let position = 100;
+          if (trainAnimationRef.current) {
+            clearInterval(trainAnimationRef.current);
+          }
+          trainAnimationRef.current = setInterval(() => {
+            position -= 2;
+            if (position < -100) {
+              clearInterval(trainAnimationRef.current);
+              setTrainPosition(null);
+              return;
+            }
+            setTrainPosition(position);
+          }, 50);
           break
       }
       setInputValue("")
@@ -214,6 +256,19 @@ export function Terminal() {
         {/* 屏幕弯曲效果 */}
         <div className="absolute inset-0 [box-shadow:inset_0_0_50px_rgba(0,0,0,0.5)]"></div>
       </div>
+
+      {/* 火车动画 */}
+      {trainPosition !== null && (
+        <div 
+          className="absolute inset-0 z-20 pointer-events-none text-green-400 font-mono whitespace-pre"
+          style={{ 
+            transform: `translateX(${trainPosition}%)`,
+            transition: 'transform 50ms linear'
+          }}
+        >
+          {TRAIN_ASCII}
+        </div>
+      )}
 
       <div className="bg-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between relative z-10">
         <div className="flex items-center">
