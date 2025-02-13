@@ -800,7 +800,7 @@ export function Terminal() {
             <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
             <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
           </div>
-          <div className="ml-2 sm:ml-4 text-white font-mono text-sm sm:text-base">Terminal</div>
+          <div className="ml-2 sm:ml-4 text-white font-mono text-sm sm:text-base">Linux 模拟终端</div>
         </div>
 
         {/* 中间：命令面板按钮 */}
