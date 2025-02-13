@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { TerminalInput } from "./TerminalInput"
 import { TerminalOutput } from "./TerminalOutput"
 import { simulateLinuxCommand } from "./lib/api"
+import CommandPanel from './components/CommandPanel'
 
 // 内置命令列表
 const BUILT_IN_COMMANDS = ['help', 'clear', 'sl', 'cmatrix', 'asciiquarium', 'dashboard', 'oneko'];
@@ -155,9 +156,10 @@ export function Terminal() {
   const [showMatrix, setShowMatrix] = useState(false)
   const [showAquarium, setShowAquarium] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
-  const [showNeko, setShowNeko] = useState(false)  // 添加猫咪动画状态
+  const [showNeko, setShowNeko] = useState(false)
   const [nekoPosition, setNekoPosition] = useState({ x: 0, y: 0 })
   const [nekoState, setNekoState] = useState('idle')
+  const [showCommandPanel, setShowCommandPanel] = useState(false)
   const lastMoveTime = useRef(Date.now())
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -755,6 +757,13 @@ export function Terminal() {
     focusInput(true)
   }, [])
 
+  // 处理命令面板选中的命令
+  const handleSelectCommand = (command: string) => {
+    setInputValue(command);
+    setShowCommandPanel(false);
+    focusInput(true);
+  };
+
   // 处理键盘事件
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -762,7 +771,11 @@ export function Terminal() {
         setShowMatrix(false)
         setShowAquarium(false)
         setShowDashboard(false)
+        setShowCommandPanel(false)
         focusInput(true)
+      } else if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setShowCommandPanel(prev => !prev);
       }
     }
 
@@ -778,6 +791,46 @@ export function Terminal() {
         focusInput(true);
       }}
     >
+      {/* 命令面板按钮移到这里 */}
+      <div className="bg-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between relative z-10">
+        {/* 左侧：终端标题和控制按钮 */}
+        <div className="flex items-center">
+          <div className="flex space-x-1 sm:space-x-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+          </div>
+          <div className="ml-2 sm:ml-4 text-white font-mono text-sm sm:text-base">Terminal</div>
+        </div>
+
+        {/* 中间：命令面板按钮 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowCommandPanel(true);
+          }}
+          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-400 hover:text-white font-mono text-sm flex items-center space-x-1 transition-colors bg-gray-800/50 px-2 py-0.5"
+        >
+          <span className="text-gray-500">$</span>
+          <span>命令面板</span>
+          <span className="text-xs text-gray-500 hidden sm:inline ml-1">Ctrl+K</span>
+        </button>
+
+        {/* 右侧：处理中状态 */}
+        {isProcessing && (
+          <div className="text-yellow-400 text-sm animate-pulse">
+            处理中...
+          </div>
+        )}
+      </div>
+
+      {/* 命令面板组件 */}
+      <CommandPanel
+        isOpen={showCommandPanel}
+        onClose={() => setShowCommandPanel(false)}
+        onSelectCommand={handleSelectCommand}
+      />
+
       {/* CRT 屏幕效果 */}
       <div className="absolute inset-0 pointer-events-none">
         {/* 扫描线效果 */}
@@ -874,21 +927,6 @@ export function Terminal() {
         </div>
       )}
 
-      <div className="bg-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between relative z-10">
-        <div className="flex items-center">
-          <div className="flex space-x-1 sm:space-x-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-          </div>
-          <div className="ml-2 sm:ml-4 text-white font-mono text-sm sm:text-base">Terminal</div>
-        </div>
-        {isProcessing && (
-          <div className="text-yellow-400 text-sm animate-pulse">
-            处理中...
-          </div>
-        )}
-      </div>
       <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0">
         <div 
           className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative" 
