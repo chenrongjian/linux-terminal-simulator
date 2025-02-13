@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 // 定义命令分类和命令数据结构
 interface Command {
@@ -41,8 +41,8 @@ const commandCategories: CommandCategory[] = [
     name: '系统信息',
     icon: '🖥️',
     commands: [
+      { name: 'help', description: '显示帮助信息和可用命令列表' },
       { name: 'date', description: '显示系统日期和时间' },
-      { name: 'cal', description: '显示日历', example: 'cal 2024' },
       { name: 'uptime', description: '显示系统运行时间' },
       { name: 'whoami', description: '显示当前用户名' },
       { name: 'df', description: '显示磁盘使用情况', example: 'df -h' },
@@ -81,25 +81,58 @@ export default function CommandPanel({ isOpen, onClose, onSelectCommand }: Comma
   const [selectedCategory, setSelectedCategory] = useState<string>(commandCategories[0].name);
 
   // 搜索过滤逻辑
-  const filteredCommands = searchTerm
-    ? commandCategories.flatMap(category => 
+  const filteredCommands = useMemo(() => {
+    if (searchTerm) {
+      // 搜索模式：在所有分类中搜索
+      return commandCategories.flatMap(category => 
         category.commands.filter(cmd => 
           cmd.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           cmd.description.toLowerCase().includes(searchTerm.toLowerCase())
         )
-      )
-    : commandCategories.find(c => c.name === selectedCategory)?.commands || [];
+      );
+    } else {
+      // 分类模式：显示选中分类的命令
+      const category = commandCategories.find(c => c.name === selectedCategory);
+      return category ? category.commands : [];
+    }
+  }, [searchTerm, selectedCategory]);
+
+  // 处理分类切换
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setSearchTerm('');
+  };
+
+  // 处理搜索输入
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    if (e.target.value) {
+      setSelectedCategory('');
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-xl flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+    >
+      <div 
+        className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* 面板头部 */}
         <div className="p-4 border-b border-gray-700 flex justify-between items-center">
           <h2 className="text-xl text-white font-semibold">命令快捷面板</h2>
           <button 
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="text-gray-400 hover:text-white"
           >
             ✕
@@ -107,26 +140,25 @@ export default function CommandPanel({ isOpen, onClose, onSelectCommand }: Comma
         </div>
 
         {/* 搜索框 */}
-        <div className="p-4 border-b border-gray-700">
+        <div className="p-4 border-b border-gray-700" onClick={(e) => e.stopPropagation()}>
           <input
             type="text"
             placeholder="搜索命令..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearch}
+            onKeyDown={(e) => e.stopPropagation()}
             className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
           />
         </div>
 
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0" onClick={(e) => e.stopPropagation()}>
           {/* 分类侧边栏 */}
           <div className="w-48 border-r border-gray-700 overflow-y-auto">
             {commandCategories.map(category => (
               <button
                 key={category.name}
-                onClick={() => {
-                  setSelectedCategory(category.name);
-                  setSearchTerm('');
-                }}
+                onClick={() => handleCategoryClick(category.name)}
                 className={`w-full px-4 py-3 text-left flex items-center space-x-2 hover:bg-gray-700 ${
                   selectedCategory === category.name && !searchTerm ? 'bg-gray-700' : ''
                 }`}
