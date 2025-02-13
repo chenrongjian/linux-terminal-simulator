@@ -8,7 +8,7 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "Linux 终端模拟器",
-    "description": "一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令和丰富的趣味功能。包括字符画生成、动态火车、唐诗生成、矩阵雨、水族箱动画、系统监控仪表盘、可爱猫咪动画等特色功能。",
+    "description": "一个基于 Next.js 和 AI 的 Web 端 Linux 终端模拟器，支持常用 Linux 命令和丰富的趣味功能。包括命令快捷面板、分类展示、实时搜索，以及字符画生成、动态火车、唐诗生成、矩阵雨、水族箱动画、系统监控仪表盘、可爱猫咪动画等特色功能。",
     "applicationCategory": "教育工具",
     "operatingSystem": "Web 浏览器",
     "offers": {
@@ -21,6 +21,9 @@ export default function Home() {
       "实时命令响应",
       "命令输出格式化显示",
       "内置命令别名支持",
+      "命令快捷面板（Ctrl+K 快捷键）",
+      "命令分类展示和实时搜索",
+      "可拖拽的面板界面",
       "支持 cowsay 命令生成多种可爱的 ASCII 字符画（企鹅、猫咪、狗狗等）",
       "动态火车动画效果（sl 命令）",
       "随机唐诗生成器（fortune 命令）",
@@ -30,7 +33,7 @@ export default function Home() {
       "可爱的 ASCII 猫咪动画（oneko 命令）",
       "AI 驱动的智能命令输出生成"
     ],
-    "keywords": "Linux,终端模拟器,命令行,Web 终端,Linux 学习,Next.js,AI,cowsay,ASCII art,Tux,企鹅字符画,猫咪字符画,狗狗字符画,sl 火车,fortune 唐诗,cmatrix 矩阵雨,asciiquarium 水族箱,系统监控仪表盘,oneko 猫咪动画,动画效果"
+    "keywords": "Linux,终端模拟器,命令行,Web 终端,Linux 学习,Next.js,AI,命令快捷面板,命令搜索,命令分类,cowsay,ASCII art,Tux,企鹅字符画,猫咪字符画,狗狗字符画,sl 火车,fortune 唐诗,cmatrix 矩阵雨,asciiquarium 水族箱,系统监控仪表盘,oneko 猫咪动画,动画效果"
   }
 
   return (
