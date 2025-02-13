@@ -214,7 +214,7 @@ export default function CommandPanel({ isOpen, onClose, onSelectCommand }: Comma
 
   return (
     <div 
-      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-black/80 z-50 flex items-start sm:items-center justify-center overflow-hidden"
       onClick={(e) => {
         e.stopPropagation();
         onClose();
@@ -227,9 +227,13 @@ export default function CommandPanel({ isOpen, onClose, onSelectCommand }: Comma
           left: `${position.x}px`,
           top: `${position.y}px`,
           transition: isDragging ? 'none' : 'all 0.2s',
-          cursor: isDragging ? 'grabbing' : 'default'
+          cursor: isDragging ? 'grabbing' : 'default',
+          width: '85vw', // 进一步减小宽度
+          maxWidth: '600px', // 减小最大宽度
+          height: '70vh', // 进一步减小高度
+          maxHeight: '500px' // 减小最大高度
         }}
-        className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-2xl flex flex-col border border-gray-700/50 relative"
+        className="bg-gray-800 rounded-lg overflow-hidden shadow-2xl flex flex-col border border-gray-700/50 relative sm:w-auto sm:h-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* CRT 屏幕效果 */}
@@ -242,88 +246,90 @@ export default function CommandPanel({ isOpen, onClose, onSelectCommand }: Comma
           <div className="absolute inset-0 [box-shadow:inset_0_0_50px_rgba(0,0,0,0.5)]"></div>
         </div>
 
-        {/* 面板头部 - 添加拖动手柄 */}
+        {/* 面板头部 */}
         <div 
-          className="bg-gray-700 p-4 border-b border-gray-700/50 flex justify-between items-center relative z-10 cursor-grab active:cursor-grabbing select-none"
+          className="bg-gray-700 p-2 sm:p-4 border-b border-gray-700/50 flex justify-between items-center relative z-10 cursor-grab active:cursor-grabbing select-none"
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
         >
-          <div className="flex items-center space-x-4">
-            <div className="flex space-x-1 sm:space-x-2">
-              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 rounded-full bg-red-500"></div>
+              <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
             </div>
-            <h2 className="text-white font-mono text-sm sm:text-base">命令快捷面板</h2>
+            <h2 className="text-white font-mono text-xs sm:text-base">命令快捷面板</h2>
           </div>
           <button 
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors text-sm"
           >
             ✕
           </button>
         </div>
 
         {/* 搜索框 */}
-        <div className="p-4 border-b border-gray-700/50 relative z-10 bg-black/20" onClick={(e) => e.stopPropagation()}>
+        <div className="p-2 sm:p-4 border-b border-gray-700/50 relative z-10 bg-black/20" onClick={(e) => e.stopPropagation()}>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
             <input
               type="text"
               placeholder="搜索命令..."
               value={searchTerm}
               onChange={handleSearch}
               onKeyDown={(e) => e.stopPropagation()}
-              className="w-full pl-8 pr-4 py-2 bg-gray-800/50 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500/50 font-mono placeholder-gray-600"
+              className="w-full pl-7 pr-3 py-1.5 bg-gray-800/50 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500/50 font-mono placeholder-gray-600 text-xs sm:text-sm"
               autoFocus
             />
           </div>
         </div>
 
-        <div className="flex flex-1 min-h-0 relative z-10 bg-black/20" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-1 min-h-0 relative z-10 bg-black/20 flex-col sm:flex-row" onClick={(e) => e.stopPropagation()}>
           {/* 分类侧边栏 */}
-          <div className="w-48 border-r border-gray-700/50 overflow-y-auto bg-gray-800/30">
-            {commandCategories.map(category => (
-              <button
-                key={category.name}
-                onClick={() => handleCategoryClick(category.name)}
-                className={`w-full px-4 py-3 text-left flex items-center space-x-2 hover:bg-gray-700/50 transition-colors ${
-                  selectedCategory === category.name && !searchTerm ? 'bg-gray-700/80 text-white' : 'text-gray-300'
-                }`}
-              >
-                <span>{category.icon}</span>
-                <span className="font-mono">{category.name}</span>
-              </button>
-            ))}
+          <div className="w-full sm:w-40 border-b sm:border-b-0 sm:border-r border-gray-700/50 overflow-x-auto sm:overflow-y-auto bg-gray-800/30 h-12 sm:h-auto">
+            <div className="flex sm:flex-col whitespace-nowrap h-full">
+              {commandCategories.map(category => (
+                <button
+                  key={category.name}
+                  onClick={() => handleCategoryClick(category.name)}
+                  className={`px-2 sm:px-3 py-1.5 sm:py-2 text-left flex items-center space-x-1.5 hover:bg-gray-700/50 transition-colors ${
+                    selectedCategory === category.name && !searchTerm ? 'bg-gray-700/80 text-white' : 'text-gray-300'
+                  }`}
+                >
+                  <span className="text-sm">{category.icon}</span>
+                  <span className="font-mono text-xs">{category.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* 命令列表 */}
-          <div className="flex-1 overflow-y-auto p-4 bg-black/20">
-            <div className="grid grid-cols-1 gap-4">
+          <div className="flex-1 overflow-y-auto p-1.5 sm:p-3 bg-black/20">
+            <div className="grid grid-cols-1 gap-1.5">
               {filteredCommands.map(command => (
                 <div
                   key={command.name}
-                  className="bg-gray-800/50 rounded-lg p-4 hover:bg-gray-700/80 cursor-pointer border border-gray-700/30 transition-all hover:border-gray-400/30 group"
+                  className="bg-gray-800/50 rounded-lg p-1.5 sm:p-3 hover:bg-gray-700/80 cursor-pointer border border-gray-700/30 transition-all hover:border-gray-400/30 group"
                   onClick={() => onSelectCommand(command.name)}
                 >
                   <div className="flex justify-between items-start">
-                    <h3 className="text-lg text-white font-mono group-hover:text-gray-200">{command.name}</h3>
+                    <h3 className="text-xs sm:text-base text-white font-mono group-hover:text-gray-200">{command.name}</h3>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectCommand(command.name);
                       }}
-                      className="px-3 py-1 bg-gray-700/50 text-white rounded hover:bg-gray-600/50 text-sm font-mono transition-colors"
+                      className="px-1.5 sm:px-2 py-0.5 bg-gray-700/50 text-white rounded hover:bg-gray-600/50 text-xs font-mono transition-colors"
                     >
                       使用
                     </button>
                   </div>
-                  <p className="text-gray-400 mt-2 font-mono text-sm">{command.description}</p>
+                  <p className="text-gray-400 mt-0.5 sm:mt-1.5 font-mono text-xs">{command.description}</p>
                   {command.example && (
-                    <p className="text-gray-500 mt-2 font-mono text-sm">
+                    <p className="text-gray-500 mt-0.5 sm:mt-1.5 font-mono text-xs">
                       示例: {command.example}
                     </p>
                   )}

@@ -229,9 +229,9 @@ export async function POST(request: Request) {
       let promptCommand = command;
 
       if (cmd === 'fortune') {
-        systemPrompt = `你是一个中国古典诗词生成器。每次调用时，随机生成一首优美的唐诗，并遵循以下规则：
-1. 只生成唐代诗人的作品
-2. 包含诗题、作者和诗句
+        systemPrompt = `你是一个中国古典诗词生成器。每次调用时，从以下唐诗中随机选择一首完整的诗词（不要生成新的），并遵循以下规则：
+1. 只从以下诗人的作品中选择：李白、杜甫、王维、白居易、李商隐、杜牧、孟浩然、韦应物、刘禹锡、柳宗元
+2. 确保诗题、作者和诗句完全匹配，不要混搭
 3. 使用中文输出
 4. 格式要求：
    [诗题]
@@ -239,12 +239,17 @@ export async function POST(request: Request) {
    [诗句]
    
 示例：
-春望
+《春望》
 杜甫
 国破山河在，城春草木深。
 感时花溅泪，恨别鸟惊心。
 烽火连三月，家书抵万金。
-白头搔更短，浑欲不胜簪。`;
+白头搔更短，浑欲不胜簪。
+
+《静夜思》
+李白
+床前明月光，疑是地上霜。
+举头望明月，低头思故乡。`;
       } else if (cmd === 'cal') {
         const now = new Date();
         systemPrompt = `You are a calendar ASCII art generator. Generate a cute calendar for the current month with these rules:

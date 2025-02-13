@@ -487,112 +487,81 @@ export function Terminal() {
   useEffect(() => {
     if (!showNeko) return;
 
-    let lastMouseX = 0;
-    let lastMouseY = 0;
-    let sleepTimeout: NodeJS.Timeout;
+    // 获取终端容器元素
     const terminalElement = document.querySelector('.terminal-container');
     if (!terminalElement) return;
 
+    // 初始化猫咪位置到终端中心
+    const rect = terminalElement.getBoundingClientRect();
+    setNekoPosition({
+      x: rect.width / 2 - 32,
+      y: rect.height / 2 - 32
+    });
+
+    let targetX = rect.width / 2 - 32;
+    let targetY = rect.height / 2 - 32;
+
     // 处理鼠标移动
     const handleMouseMove = (e: MouseEvent) => {
-      // 清除之前的睡眠定时器
-      if (sleepTimeout) {
-        clearTimeout(sleepTimeout);
-      }
-      
-      // 获取终端窗口的位置和大小
       const terminalRect = terminalElement.getBoundingClientRect();
-      
-      // 计算鼠标在终端内的相对位置
-      const relativeX = e.clientX - terminalRect.left;
-      const relativeY = e.clientY - terminalRect.top;
-      
-      updateNekoPosition(terminalRect, relativeX, relativeY);
-      
-      // 设置新的睡眠定时器
-      sleepTimeout = setTimeout(() => {
-        setNekoState('sleeping');
-      }, 3000);
+      targetX = e.clientX - terminalRect.left;
+      targetY = e.clientY - terminalRect.top;
     };
 
-    // 处理触摸移动
-    const handleTouchMove = (e: TouchEvent) => {
-      e.preventDefault(); // 防止页面滚动
-      
-      // 清除之前的睡眠定时器
-      if (sleepTimeout) {
-        clearTimeout(sleepTimeout);
-      }
-      
-      // 获取终端窗口的位置和大小
-      const terminalRect = terminalElement.getBoundingClientRect();
-      
-      // 获取第一个触摸点
-      const touch = e.touches[0];
-      
-      // 计算触摸点在终端内的相对位置
-      const relativeX = touch.clientX - terminalRect.left;
-      const relativeY = touch.clientY - terminalRect.top;
-      
-      updateNekoPosition(terminalRect, relativeX, relativeY);
-      
-      // 设置新的睡眠定时器
-      sleepTimeout = setTimeout(() => {
-        setNekoState('sleeping');
-      }, 3000);
-    };
+    // 动画更新函数
+    const updatePosition = () => {
+      setNekoPosition(current => {
+        const dx = targetX - current.x;
+        const dy = targetY - current.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // 更新猫咪位置的通用函数
-    const updateNekoPosition = (terminalRect: DOMRect, x: number, y: number) => {
-      // 限制位置在终端窗口内
-      const mouseX = Math.min(Math.max(x, 32), terminalRect.width - 32);
-      const mouseY = Math.min(Math.max(y, 32), terminalRect.height - 32);
-      
-      // 计算与猫咪的距离
-      const dx = mouseX - nekoPosition.x;
-      const dy = mouseY - nekoPosition.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      // 如果距离太近，不需要移动
-      if (distance < 5) {
-        setNekoState('idle');
-        return;
+        if (distance < 5) {
+          setNekoState('idle');
+          return current;
+        }
+
+        setNekoState('running');
+        const speed = Math.min(distance * 0.2, 10); // 根据距离动态调整速度，但不超过最大值
+        const angle = Math.atan2(dy, dx);
+        const newX = current.x + Math.cos(angle) * speed;
+        const newY = current.y + Math.sin(angle) * speed;
+
+        // 限制猫咪在终端窗口内
+        const terminalRect = terminalElement.getBoundingClientRect();
+        const boundedX = Math.min(Math.max(newX, 0), terminalRect.width - 64);
+        const boundedY = Math.min(Math.max(newY, 0), terminalRect.height - 64);
+
+        // 更新最后移动时间
+        if (boundedX !== current.x || boundedY !== current.y) {
+          lastMoveTime.current = Date.now();
+        }
+
+        return { x: boundedX, y: boundedY };
+      });
+
+      // 检查睡眠状态
+      const currentTime = Date.now();
+      if (currentTime - lastMoveTime.current > 3000) {
+        setNekoState('sleeping');
       }
 
-      // 更新猫咪位置和状态
-      const speed = 5;
-      const angle = Math.atan2(dy, dx);
-      const newX = Math.min(Math.max(
-        nekoPosition.x + Math.cos(angle) * speed,
-        32
-      ), terminalRect.width - 32);
-      const newY = Math.min(Math.max(
-        nekoPosition.y + Math.sin(angle) * speed,
-        32
-      ), terminalRect.height - 32);
-      
-      setNekoPosition({ x: newX, y: newY });
-      setNekoState('running');
+      nekoAnimationRef.current = requestAnimationFrame(updatePosition);
     };
+
+    // 开始动画循环
+    nekoAnimationRef.current = requestAnimationFrame(updatePosition);
 
     // 添加事件监听器
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
 
-    // 初始化睡眠定时器
-    sleepTimeout = setTimeout(() => {
-      setNekoState('sleeping');
-    }, 3000);
-
-    // 清理事件监听器和定时器
+    // 清理事件监听器和动画
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchmove', handleTouchMove);
-      if (sleepTimeout) {
-        clearTimeout(sleepTimeout);
+      if (nekoAnimationRef.current) {
+        cancelAnimationFrame(nekoAnimationRef.current);
       }
     };
-  }, [showNeko, nekoPosition]);
+  }, [showNeko]); // 只在 showNeko 变化时重新设置
 
   const focusInput = (closeAnimations: boolean = true) => {
     inputRef.current?.focus()
@@ -625,13 +594,12 @@ export function Terminal() {
       const terminalElement = document.querySelector('.terminal-container');
       if (terminalElement) {
         const rect = terminalElement.getBoundingClientRect();
-        // 设置猫咪在终端中央
         setNekoPosition({
-          x: rect.width / 2 - 32,  // 32 是猫咪宽度的一半
-          y: rect.height / 2 - 32  // 32 是猫咪高度的一半
+          x: rect.width / 2 - 32,
+          y: rect.height / 2 - 32
         });
       }
-      setShowNeko(prev => !prev)  // 切换猫咪显示状态
+      setShowNeko(prev => !prev)
       setInputValue("")
       focusInput(true)
       return;
@@ -664,22 +632,21 @@ export function Terminal() {
     if (command === 'help') {
       setHistory((prev) => [...prev, 
         "可用命令:",
-        "- help: 显示帮助信息",
-        "- clear: 清空终端",
-        "- cowsay: 生成 ASCII 字符画，支持多种类型",
-        "  示例:",
-        "  - cowsay Hello World     # 生成 Tux 企鹅",
-        "  - cowsay cat Hello       # 生成猫咪",
-        "  - cowsay dog Woof        # 生成狗狗",
-        "- sl: 显示一辆动态的小火车",
-        "- fortune: 随机生成一首优美的唐诗",
-        "- cmatrix: 显示黑客帝国风格的矩阵雨效果",
-        "- asciiquarium: 显示水族箱动画效果",
-        "- dashboard: 显示系统监控仪表盘",
-        "- oneko: 切换猫咪动画的显示状态",
-        "- cal: 显示精美的当月日历，带有可爱装饰",
-        "- 其他标准 Linux 命令将通过 AI 模拟执行",
-        "注意: 某些危险命令（如 rm、chmod 等）已被禁用"
+        "help     显示帮助信息",
+        "clear    清空终端",
+        "cowsay   生成 ASCII 字符画，支持多种类型",
+        "fortune  随机生成唐诗",
+        "sl       显示动态火车",
+        "cmatrix  黑客帝国特效",
+        "asciiquarium  水族箱动画",
+        "dashboard     系统监控面板",
+        "oneko    可爱猫咪动画",
+        "cal      精美日历显示",
+        "",
+        "示例:",
+        "cowsay Hello World     # 生成 Tux 企鹅",
+        "cowsay cat Hello       # 生成猫咪",
+        "cowsay dog Woof       # 生成狗狗"
       ])
       setInputValue("")
       focusInput(true)
@@ -688,15 +655,14 @@ export function Terminal() {
 
     // 处理动画命令
     if (command === 'sl') {
-      // 启动火车动画
-      setTrainPosition(100) // 从右侧开始
+      setTrainPosition(100)
       let position = 100;
       if (trainAnimationRef.current) {
         clearInterval(trainAnimationRef.current);
       }
       trainAnimationRef.current = setInterval(() => {
         position -= 2;
-        if (position < -150) { // 调整为 -150 确保火车完全离开屏幕
+        if (position < -150) {
           clearInterval(trainAnimationRef.current);
           setTrainPosition(null);
           return;
@@ -734,7 +700,20 @@ export function Terminal() {
 
     try {
       const response = await simulateLinuxCommand(command)
-      const lines = response.split('\n')
+      
+      // 处理命令输出格式
+      let formattedOutput = response;
+      
+      // 如果不是特殊命令（cowsay, fortune, cal），则格式化输出
+      if (!isAsciiArtCommand(command.split(' ')[0])) {
+        // 移除多余的空白行，但保留 markdown 格式
+        formattedOutput = response
+          .split('\n')
+          .filter(line => line.trim() !== '')
+          .join('\n');
+      }
+      
+      const lines = formattedOutput.split('\n');
       setHistory((prev) => [...prev, ...lines])
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || '未知错误';
@@ -785,7 +764,7 @@ export function Terminal() {
 
   return (
     <div 
-      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative min-h-[60vh] md:min-h-[70vh] flex flex-col terminal-container"
+      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative flex flex-col h-[80vh] md:h-[70vh] terminal-container"
       onClick={(e) => {
         e.preventDefault();
         focusInput(true);
@@ -800,7 +779,7 @@ export function Terminal() {
             <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
             <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
           </div>
-          <div className="ml-2 sm:ml-4 text-white font-mono text-sm sm:text-base">Linux 模拟终端</div>
+          <div className="ml-2 sm:ml-4 text-white font-mono text-xs sm:text-base">Linux 模拟终端</div>
         </div>
 
         {/* 中间：命令面板按钮 */}
@@ -809,7 +788,7 @@ export function Terminal() {
             e.stopPropagation();
             setShowCommandPanel(true);
           }}
-          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-400 hover:text-white font-mono text-sm flex items-center space-x-1 transition-colors bg-gray-800/50 px-2 py-0.5"
+          className="text-gray-400 hover:text-white font-mono text-xs sm:text-sm flex items-center space-x-1 transition-colors bg-gray-800/50 px-2 py-0.5 rounded mx-1 sm:mx-2"
         >
           <span className="text-gray-500">$</span>
           <span>命令面板</span>
@@ -818,7 +797,7 @@ export function Terminal() {
 
         {/* 右侧：处理中状态 */}
         {isProcessing && (
-          <div className="text-yellow-400 text-sm animate-pulse">
+          <div className="text-yellow-400 text-xs sm:text-sm animate-pulse">
             处理中...
           </div>
         )}
@@ -912,7 +891,8 @@ export function Terminal() {
           style={{ 
             left: `${nekoPosition.x}px`,
             top: `${nekoPosition.y}px`,
-            transition: 'all 0.1s linear'
+            transform: `translate3d(0,0,0)`, // 启用硬件加速
+            willChange: 'left, top' // 提示浏览器优化这些属性的变化
           }}
         >
           {nekoState === 'sleeping' && NEKO_SLEEPING.map((line, i) => (
@@ -927,9 +907,9 @@ export function Terminal() {
         </div>
       )}
 
-      <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0">
+      <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
         <div 
-          className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative" 
+          className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative min-h-0" 
           onClick={(e) => {
             e.preventDefault();
             focusInput(true);

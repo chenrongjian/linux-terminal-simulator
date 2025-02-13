@@ -1,0 +1,162 @@
+[1mdiff --git a/Terminal.tsx b/Terminal.tsx[m
+[1mindex 07eb6de..0090c99 100644[m
+[1m--- a/Terminal.tsx[m
+[1m+++ b/Terminal.tsx[m
+[36m@@ -625,13 +625,12 @@[m [mexport function Terminal() {[m
+       const terminalElement = document.querySelector('.terminal-container');[m
+       if (terminalElement) {[m
+         const rect = terminalElement.getBoundingClientRect();[m
+[31m-        // 设置猫咪在终端中央[m
+         setNekoPosition({[m
+[31m-          x: rect.width / 2 - 32,  // 32 是猫咪宽度的一半[m
+[31m-          y: rect.height / 2 - 32  // 32 是猫咪高度的一半[m
+[32m+[m[32m          x: rect.width / 2 - 32,[m
+[32m+[m[32m          y: rect.height / 2 - 32[m
+         });[m
+       }[m
+[31m-      setShowNeko(prev => !prev)  // 切换猫咪显示状态[m
+[32m+[m[32m      setShowNeko(prev => !prev)[m
+       setInputValue("")[m
+       focusInput(true)[m
+       return;[m
+[36m@@ -664,22 +663,21 @@[m [mexport function Terminal() {[m
+     if (command === 'help') {[m
+       setHistory((prev) => [...prev, [m
+         "可用命令:",[m
+[31m-        "- help: 显示帮助信息",[m
+[31m-        "- clear: 清空终端",[m
+[31m-        "- cowsay: 生成 ASCII 字符画，支持多种类型",[m
+[31m-        "  示例:",[m
+[31m-        "  - cowsay Hello World     # 生成 Tux 企鹅",[m
+[31m-        "  - cowsay cat Hello       # 生成猫咪",[m
+[31m-        "  - cowsay dog Woof        # 生成狗狗",[m
+[31m-        "- sl: 显示一辆动态的小火车",[m
+[31m-        "- fortune: 随机生成一首优美的唐诗",[m
+[31m-        "- cmatrix: 显示黑客帝国风格的矩阵雨效果",[m
+[31m-        "- asciiquarium: 显示水族箱动画效果",[m
+[31m-        "- dashboard: 显示系统监控仪表盘",[m
+[31m-        "- oneko: 切换猫咪动画的显示状态",[m
+[31m-        "- cal: 显示精美的当月日历，带有可爱装饰",[m
+[31m-        "- 其他标准 Linux 命令将通过 AI 模拟执行",[m
+[31m-        "注意: 某些危险命令（如 rm、chmod 等）已被禁用"[m
+[32m+[m[32m        "help     显示帮助信息",[m
+[32m+[m[32m        "clear    清空终端",[m
+[32m+[m[32m        "cowsay   生成 ASCII 字符画，支持多种类型",[m
+[32m+[m[32m        "fortune  随机生成唐诗",[m
+[32m+[m[32m        "sl       显示动态火车",[m
+[32m+[m[32m        "cmatrix  黑客帝国特效",[m
+[32m+[m[32m        "asciiquarium  水族箱动画",[m
+[32m+[m[32m        "dashboard     系统监控面板",[m
+[32m+[m[32m        "oneko    可爱猫咪动画",[m
+[32m+[m[32m        "cal      精美日历显示",[m
+[32m+[m[32m        "",[m
+[32m+[m[32m        "示例:",[m
+[32m+[m[32m        "cowsay Hello World     # 生成 Tux 企鹅",[m
+[32m+[m[32m        "cowsay cat Hello       # 生成猫咪",[m
+[32m+[m[32m        "cowsay dog Woof       # 生成狗狗"[m
+       ])[m
+       setInputValue("")[m
+       focusInput(true)[m
+[36m@@ -688,15 +686,14 @@[m [mexport function Terminal() {[m
+ [m
+     // 处理动画命令[m
+     if (command === 'sl') {[m
+[31m-      // 启动火车动画[m
+[31m-      setTrainPosition(100) // 从右侧开始[m
+[32m+[m[32m      setTrainPosition(100)[m
+       let position = 100;[m
+       if (trainAnimationRef.current) {[m
+         clearInterval(trainAnimationRef.current);[m
+       }[m
+       trainAnimationRef.current = setInterval(() => {[m
+         position -= 2;[m
+[31m-        if (position < -150) { // 调整为 -150 确保火车完全离开屏幕[m
+[32m+[m[32m        if (position < -150) {[m
+           clearInterval(trainAnimationRef.current);[m
+           setTrainPosition(null);[m
+           return;[m
+[36m@@ -734,7 +731,20 @@[m [mexport function Terminal() {[m
+ [m
+     try {[m
+       const response = await simulateLinuxCommand(command)[m
+[31m-      const lines = response.split('\n')[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 处理命令输出格式[m
+[32m+[m[32m      let formattedOutput = response;[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 如果不是特殊命令（cowsay, fortune, cal），则格式化输出[m
+[32m+[m[32m      if (!isAsciiArtCommand(command.split(' ')[0])) {[m
+[32m+[m[32m        // 移除多余的空白行，但保留 markdown 格式[m
+[32m+[m[32m        formattedOutput = response[m
+[32m+[m[32m          .split('\n')[m
+[32m+[m[32m          .filter(line => line.trim() !== '')[m
+[32m+[m[32m          .join('\n');[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      const lines = formattedOutput.split('\n');[m
+       setHistory((prev) => [...prev, ...lines])[m
+     } catch (error: any) {[m
+       const errorMessage = error.response?.data?.error || error.message || '未知错误';[m
+[36m@@ -785,7 +795,7 @@[m [mexport function Terminal() {[m
+ [m
+   return ([m
+     <div [m
+[31m-      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative min-h-[60vh] md:min-h-[70vh] flex flex-col terminal-container"[m
+[32m+[m[32m      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative flex flex-col h-[80vh] md:h-[70vh]"[m
+       onClick={(e) => {[m
+         e.preventDefault();[m
+         focusInput(true);[m
+[36m@@ -800,7 +810,7 @@[m [mexport function Terminal() {[m
+             <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>[m
+             <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>[m
+           </div>[m
+[31m-          <div className="ml-2 sm:ml-4 text-white font-mono text-sm sm:text-base">Linux 模拟终端</div>[m
+[32m+[m[32m          <div className="ml-2 sm:ml-4 text-white font-mono text-xs sm:text-base">Linux 模拟终端</div>[m
+         </div>[m
+ [m
+         {/* 中间：命令面板按钮 */}[m
+[36m@@ -809,7 +819,7 @@[m [mexport function Terminal() {[m
+             e.stopPropagation();[m
+             setShowCommandPanel(true);[m
+           }}[m
+[31m-          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-400 hover:text-white font-mono text-sm flex items-center space-x-1 transition-colors bg-gray-800/50 px-2 py-0.5"[m
+[32m+[m[32m          className="text-gray-400 hover:text-white font-mono text-xs sm:text-sm flex items-center space-x-1 transition-colors bg-gray-800/50 px-2 py-0.5 rounded mx-1 sm:mx-2"[m
+         >[m
+           <span className="text-gray-500">$</span>[m
+           <span>命令面板</span>[m
+[36m@@ -818,7 +828,7 @@[m [mexport function Terminal() {[m
+ [m
+         {/* 右侧：处理中状态 */}[m
+         {isProcessing && ([m
+[31m-          <div className="text-yellow-400 text-sm animate-pulse">[m
+[32m+[m[32m          <div className="text-yellow-400 text-xs sm:text-sm animate-pulse">[m
+             处理中...[m
+           </div>[m
+         )}[m
+[36m@@ -927,9 +937,9 @@[m [mexport function Terminal() {[m
+         </div>[m
+       )}[m
+ [m
+[31m-      <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0">[m
+[32m+[m[32m      <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">[m
+         <div [m
+[31m-          className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative" [m
+[32m+[m[32m          className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative min-h-0"[m[41m [m
+           onClick={(e) => {[m
+             e.preventDefault();[m
+             focusInput(true);[m
+[1mdiff --git a/TerminalOutput.tsx b/TerminalOutput.tsx[m
+[1mindex 72ac8ad..8868c91 100644[m
+[1m--- a/TerminalOutput.tsx[m
+[1m+++ b/TerminalOutput.tsx[m
+[36m@@ -1,19 +1,125 @@[m
+[31m-import { forwardRef } from "react"[m
+[32m+[m[32mimport { forwardRef, ReactNode } from "react"[m
+[32m+[m[32mimport ReactMarkdown from 'react-markdown'[m
+ [m
+ interface TerminalOutputProps {[m
+   history: string[][m
+ }[m
+ [m
+[32m+[m[32minterface ComponentProps {[m
+[32m+[m[32m  ch
