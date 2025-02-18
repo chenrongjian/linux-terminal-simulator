@@ -802,7 +802,7 @@ export function Terminal() {
       ref={terminalRef}
       className={`transition-all duration-300 ease-in-out ${
         isFullscreen 
-          ? 'fixed inset-0 w-screen h-screen m-0 p-0 rounded-none bg-black [writing-mode:vertical-lr]'
+          ? 'fixed inset-0 w-screen h-screen m-0 p-0 rounded-none bg-black'
           : 'w-full max-w-[95vw] md:max-w-5xl h-[85vh] md:h-[600px] rounded-lg mx-auto mt-2 md:mt-8 bg-gray-800'
       } shadow-lg overflow-hidden relative flex flex-col terminal-container`}
       style={{
@@ -967,7 +967,7 @@ export function Terminal() {
 
       <div className="flex-1 flex flex-col min-h-0 relative z-10">
         <div className="flex-1 bg-black text-white font-mono overflow-auto relative min-h-0">
-          <div className="p-2">
+          <div className={`p-2 ${isFullscreen ? 'h-[calc(100vh-80px)]' : ''}`}>
             <TerminalOutput history={history} />
           </div>
         </div>
