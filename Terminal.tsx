@@ -160,6 +160,7 @@ export function Terminal() {
   const [nekoPosition, setNekoPosition] = useState({ x: 0, y: 0 })
   const [nekoState, setNekoState] = useState('idle')
   const [showCommandPanel, setShowCommandPanel] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const lastMoveTime = useRef(Date.now())
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -171,6 +172,7 @@ export function Terminal() {
   const aquariumAnimationRef = useRef<number>()
   const dashboardAnimationRef = useRef<number>()
   const nekoAnimationRef = useRef<number>()
+  const terminalRef = useRef<HTMLDivElement>(null)  // 添加终端容器引用
 
   // 清理动画定时器
   useEffect(() => {
@@ -762,169 +764,220 @@ export function Terminal() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  // 处理全屏切换
+  const toggleFullscreen = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!document.fullscreenElement) {
+      try {
+        await terminalRef.current?.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error('全屏切换失败:', err);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } catch (err) {
+        console.error('退出全屏失败:', err);
+      }
+    }
+  };
+
+  // 监听全屏状态变化
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   return (
-    <div 
-      className="w-full max-w-[95vw] md:max-w-5xl bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto my-4 md:my-8 relative flex flex-col h-[80vh] md:h-[70vh] terminal-container"
-      onClick={(e) => {
-        e.preventDefault();
-        focusInput(true);
-      }}
-    >
-      {/* 命令面板按钮移到这里 */}
-      <div className="bg-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between relative z-10">
-        {/* 左侧：终端标题和控制按钮 */}
-        <div className="flex items-center">
-          <div className="flex space-x-1 sm:space-x-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-900">
+      <div 
+        ref={terminalRef}
+        className={`transition-all duration-300 ease-in-out ${
+          isFullscreen 
+            ? 'fixed inset-0 w-full h-full m-0 p-0 rounded-none bg-black'
+            : 'w-full max-w-[95vw] md:max-w-5xl h-[85vh] rounded-lg bg-gray-800'
+        } shadow-lg overflow-hidden relative flex flex-col terminal-container`}
+        onClick={(e) => {
+          e.preventDefault();
+          focusInput(true);
+        }}
+      >
+        {/* 命令面板按钮移到这里 */}
+        <div className={`${isFullscreen ? 'bg-black/50' : 'bg-gray-700'} px-2 sm:px-4 py-2 flex items-center justify-between relative z-10`}>
+          {/* 左侧：终端标题和控制按钮 */}
+          <div className="flex items-center">
+            <div className="flex space-x-1 sm:space-x-2">
+              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+            </div>
+            <div className="ml-2 sm:ml-4 text-white font-mono text-xs sm:text-base">Linux 模拟终端</div>
           </div>
-          <div className="ml-2 sm:ml-4 text-white font-mono text-xs sm:text-base">Linux 模拟终端</div>
+
+          {/* 中间：命令面板按钮和全屏切换按钮 */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCommandPanel(true);
+              }}
+              className="text-gray-400 hover:text-white font-mono text-xs sm:text-sm flex items-center space-x-1 transition-colors bg-black/30 px-2 py-0.5 rounded"
+            >
+              <span className="text-gray-500">$</span>
+              <span>命令面板</span>
+              <span className="text-xs text-gray-500 hidden sm:inline ml-1">Ctrl+K</span>
+            </button>
+            
+            <button
+              onClick={toggleFullscreen}
+              className="text-gray-400 hover:text-white font-mono text-xs sm:text-sm flex items-center space-x-1 transition-colors bg-black/30 px-2 py-0.5 rounded"
+            >
+              <span>{isFullscreen ? '退出全屏' : '全屏'}</span>
+            </button>
+          </div>
+
+          {/* 右侧：处理中状态 */}
+          {isProcessing && (
+            <div className="text-yellow-400 text-xs sm:text-sm animate-pulse">
+              处理中...
+            </div>
+          )}
         </div>
 
-        {/* 中间：命令面板按钮 */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowCommandPanel(true);
-          }}
-          className="text-gray-400 hover:text-white font-mono text-xs sm:text-sm flex items-center space-x-1 transition-colors bg-gray-800/50 px-2 py-0.5 rounded mx-1 sm:mx-2"
-        >
-          <span className="text-gray-500">$</span>
-          <span>命令面板</span>
-          <span className="text-xs text-gray-500 hidden sm:inline ml-1">Ctrl+K</span>
-        </button>
+        {/* 命令面板组件 */}
+        <CommandPanel
+          isOpen={showCommandPanel}
+          onClose={() => setShowCommandPanel(false)}
+          onSelectCommand={handleSelectCommand}
+        />
 
-        {/* 右侧：处理中状态 */}
-        {isProcessing && (
-          <div className="text-yellow-400 text-xs sm:text-sm animate-pulse">
-            处理中...
+        {/* CRT 屏幕效果 */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* 扫描线效果 */}
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,_rgba(32,32,32,0.2)_50%,_transparent_100%)] bg-[length:100%_4px] animate-scan"></div>
+          {/* 屏幕发光效果 */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.1)_0%,_rgba(0,0,0,0.1)_100%)]"></div>
+          {/* 屏幕弯曲效果 */}
+          <div className="absolute inset-0 [box-shadow:inset_0_0_50px_rgba(0,0,0,0.5)]"></div>
+        </div>
+
+        {/* 火车动画 */}
+        {trainPosition !== null && (
+          <div 
+            className="absolute inset-0 z-20 pointer-events-none text-green-400 font-mono whitespace-pre flex items-center"
+            style={{ 
+              transform: `translateX(${trainPosition}%)`,
+              transition: 'transform 50ms linear'
+            }}
+          >
+            {TRAIN_ASCII}
           </div>
         )}
-      </div>
 
-      {/* 命令面板组件 */}
-      <CommandPanel
-        isOpen={showCommandPanel}
-        onClose={() => setShowCommandPanel(false)}
-        onSelectCommand={handleSelectCommand}
-      />
+        {/* 矩阵雨动画 */}
+        {showMatrix && (
+          <div className="absolute inset-0 z-30 bg-black">
+            <canvas
+              ref={matrixRef}
+              className="w-full h-full cursor-pointer"
+              style={{ background: 'black' }}
+              onClick={() => {
+                setShowMatrix(false);
+                if (matrixAnimationRef.current) {
+                  cancelAnimationFrame(matrixAnimationRef.current);
+                }
+              }}
+            />
+          </div>
+        )}
 
-      {/* CRT 屏幕效果 */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* 扫描线效果 */}
-        <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,_rgba(32,32,32,0.2)_50%,_transparent_100%)] bg-[length:100%_4px] animate-scan"></div>
-        {/* 屏幕发光效果 */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.1)_0%,_rgba(0,0,0,0.1)_100%)]"></div>
-        {/* 屏幕弯曲效果 */}
-        <div className="absolute inset-0 [box-shadow:inset_0_0_50px_rgba(0,0,0,0.5)]"></div>
-      </div>
+        {/* 水族箱动画 */}
+        {showAquarium && (
+          <div className="absolute inset-0 z-30 bg-[#001440]">
+            <canvas
+              ref={aquariumRef}
+              className="w-full h-full cursor-pointer"
+              style={{ background: '#001440' }}
+              onClick={() => {
+                setShowAquarium(false);
+                if (aquariumAnimationRef.current) {
+                  cancelAnimationFrame(aquariumAnimationRef.current);
+                }
+              }}
+            />
+          </div>
+        )}
 
-      {/* 火车动画 */}
-      {trainPosition !== null && (
-        <div 
-          className="absolute inset-0 z-20 pointer-events-none text-green-400 font-mono whitespace-pre flex items-center"
-          style={{ 
-            transform: `translateX(${trainPosition}%)`,
-            transition: 'transform 50ms linear'
-          }}
-        >
-          {TRAIN_ASCII}
-        </div>
-      )}
+        {/* 仪表盘动画 */}
+        {showDashboard && (
+          <div className="absolute inset-0 z-30 bg-[#000D1A]">
+            <canvas
+              ref={dashboardRef}
+              className="w-full h-full cursor-pointer"
+              style={{ background: '#000D1A' }}
+              onClick={() => {
+                setShowDashboard(false);
+                if (dashboardAnimationRef.current) {
+                  cancelAnimationFrame(dashboardAnimationRef.current);
+                }
+              }}
+            />
+          </div>
+        )}
 
-      {/* 矩阵雨动画 */}
-      {showMatrix && (
-        <div className="absolute inset-0 z-30 bg-black">
-          <canvas
-            ref={matrixRef}
-            className="w-full h-full cursor-pointer"
-            style={{ background: 'black' }}
-            onClick={() => {
-              setShowMatrix(false);
-              if (matrixAnimationRef.current) {
-                cancelAnimationFrame(matrixAnimationRef.current);
-              }
+        {/* 添加猫咪动画 */}
+        {showNeko && (
+          <div 
+            className="absolute z-50 pointer-events-none select-none font-mono whitespace-pre text-yellow-300"
+            style={{ 
+              left: `${nekoPosition.x}px`,
+              top: `${nekoPosition.y}px`,
+              transform: `translate3d(0,0,0)`, // 启用硬件加速
+              willChange: 'left, top' // 提示浏览器优化这些属性的变化
             }}
-          />
-        </div>
-      )}
+          >
+            {nekoState === 'sleeping' && NEKO_SLEEPING.map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
+            {nekoState === 'running' && NEKO_RUNNING.map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
+            {nekoState === 'idle' && NEKO_IDLE.map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
+          </div>
+        )}
 
-      {/* 水族箱动画 */}
-      {showAquarium && (
-        <div className="absolute inset-0 z-30 bg-[#001440]">
-          <canvas
-            ref={aquariumRef}
-            className="w-full h-full cursor-pointer"
-            style={{ background: '#001440' }}
-            onClick={() => {
-              setShowAquarium(false);
-              if (aquariumAnimationRef.current) {
-                cancelAnimationFrame(aquariumAnimationRef.current);
-              }
+        <div className="flex-1 flex flex-col min-h-0 relative z-10">
+          <div 
+            className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative min-h-0" 
+            onClick={(e) => {
+              e.preventDefault();
+              focusInput(true);
             }}
-          />
+            ref={outputRef}
+          >
+            <TerminalOutput history={history} />
+          </div>
+          <div className={`${isFullscreen ? 'bg-black' : ''} p-2 sm:p-4`}>
+            <TerminalInput 
+              ref={inputRef}
+              value={inputValue} 
+              onChange={(e) => setInputValue(e.target.value)} 
+              onSubmit={handleCommand}
+              disabled={isProcessing} 
+            />
+          </div>
         </div>
-      )}
-
-      {/* 仪表盘动画 */}
-      {showDashboard && (
-        <div className="absolute inset-0 z-30 bg-[#000D1A]">
-          <canvas
-            ref={dashboardRef}
-            className="w-full h-full cursor-pointer"
-            style={{ background: '#000D1A' }}
-            onClick={() => {
-              setShowDashboard(false);
-              if (dashboardAnimationRef.current) {
-                cancelAnimationFrame(dashboardAnimationRef.current);
-              }
-            }}
-          />
-        </div>
-      )}
-
-      {/* 添加猫咪动画 */}
-      {showNeko && (
-        <div 
-          className="absolute z-50 pointer-events-none select-none font-mono whitespace-pre text-yellow-300"
-          style={{ 
-            left: `${nekoPosition.x}px`,
-            top: `${nekoPosition.y}px`,
-            transform: `translate3d(0,0,0)`, // 启用硬件加速
-            willChange: 'left, top' // 提示浏览器优化这些属性的变化
-          }}
-        >
-          {nekoState === 'sleeping' && NEKO_SLEEPING.map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
-          {nekoState === 'running' && NEKO_RUNNING.map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
-          {nekoState === 'idle' && NEKO_IDLE.map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
-        </div>
-      )}
-
-      <div className="p-2 sm:p-4 relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div 
-          className="flex-1 bg-black text-white font-mono p-4 overflow-auto relative min-h-0" 
-          onClick={(e) => {
-            e.preventDefault();
-            focusInput(true);
-          }}
-          ref={outputRef}
-        >
-          <TerminalOutput history={history} />
-        </div>
-        <TerminalInput 
-          ref={inputRef}
-          value={inputValue} 
-          onChange={(e) => setInputValue(e.target.value)} 
-          onSubmit={handleCommand}
-          disabled={isProcessing} 
-        />
       </div>
     </div>
   )
