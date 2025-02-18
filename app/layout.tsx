@@ -36,6 +36,10 @@ export const metadata: Metadata = {
   viewport: {
     width: 'device-width',
     initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: 'cover',
+    orientation: 'portrait'
   },
   verification: {
     google: 'QfYGSzH1pxteLvqL0cx80PIKI2pVmzConq9wYXhduwE'
@@ -52,6 +56,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="screen-orientation" content="portrait" />
+        <meta name="x5-orientation" content="portrait" />
+        <meta name="format-detection" content="telephone=no,email=no,address=no" />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   )
