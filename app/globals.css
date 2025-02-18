@@ -2,8 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  min-height: 100vh;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
+  width: 100%;
 }
 
 @layer utilities {

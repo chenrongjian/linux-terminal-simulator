@@ -803,7 +803,7 @@ export function Terminal() {
       className={`transition-all duration-300 ease-in-out ${
         isFullscreen 
           ? 'fixed inset-0 w-screen h-screen m-0 p-0 rounded-none bg-black'
-          : 'w-full max-w-[95vw] md:max-w-5xl h-[85vh] md:h-[600px] rounded-lg mx-auto mt-2 md:mt-8 bg-gray-800'
+          : 'w-[92vw] md:w-[800px] h-[92vh] md:h-[600px] rounded-lg bg-gray-800'
       } shadow-lg overflow-hidden relative flex flex-col terminal-container`}
       style={{
         // 在全屏模式下添加额外样式以确保正确的显示方向
